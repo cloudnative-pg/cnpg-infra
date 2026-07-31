@@ -1,0 +1,240 @@
+# Desired-state CODEOWNERS content for every managed repo (see
+# managed-repos.yaml) — the single source of truth this workspace uses to
+# check and (in a later step) fix each repo's actual CODEOWNERS file
+# against. Renamed from codeowners-policy.yaml once it grew from "just the
+# `*` rule" to the full set of rules a repo's CODEOWNERS file needs,
+# including path-scoped ones.
+#
+# Hand-maintained — like repo-policy.yaml and org-policy.yaml, nothing
+# regenerates this file.
+#
+# Each repo has an ordered list of `rules`, one per CODEOWNERS line:
+#   path:  the CODEOWNERS pattern. "*" is the catch-all default-owners
+#          line; anything else (e.g. "/docs/", "/timescaledb-oss/") is a
+#          path-scoped override, matching that repo's own directory
+#          layout. Order matters the same way it does in a real CODEOWNERS
+#          file: later, more specific patterns override earlier ones for
+#          the paths they match, so keep "*" first.
+#   teams: team slugs for this line (rendered as `@cloudnative-pg/<slug>`)
+#   users: individual GitHub usernames for this line (rendered as `@<user>`)
+#
+# Prefer a team over hardcoding individual users wherever one already
+# fits: a team's membership changes get picked up automatically, a
+# hardcoded user list doesn't. Case in point — postgres-extensions-
+# containers' real, current `*` line lists @GabriFedi97 by name, but
+# governance/subprojects/supply-chain.md's documented owners for that
+# repo don't mention them at all; they're simply a member of the
+# extensions-maintainers team. Listing that team instead of the name
+# resolves the mismatch and stays correct as membership changes, which is
+# exactly why this repo's `*` rule below includes extensions-maintainers.
+#
+# Sourced from governance/subprojects/*.md's Scope + Owners columns
+# (whole-repository AND path-scoped rows both included here, unlike the
+# old codeowners-policy.yaml which only tracked the whole-repo row).
+# `teams: [maintainers]` is used org-wide for `*` rules today because it's
+# the only team that actually exists with broad access — governance's
+# proposed subproject committees (core-maintainers, supply-chain-
+# maintainers, etc., see governance/subprojects/README.md) aren't rolled
+# out as real GitHub teams yet; revisit once they are.
+#
+# note: present on a rule where governance documents no owner at all for
+# that scope — a real, flagged gap, not an oversight in this file.
+#
+# Exceptions (no `*` rule assigned at all): .github and .project — no team
+# has any repo access to either today (see teams.yaml), only the 7 org
+# owners can administer them, so naming a team here would name one that
+# can't act on it. Revisit once the steering-committee team (planned to
+# own governance/.project/.github, see governance/subprojects/README.md)
+# is rolled out.
+
+repositories:
+  - name: .github
+    exception: true
+    reason: "No team has any repo access today (confirmed via teams.yaml); only the 7 org owners can administer it. Planned to become steering-committee-owned, see governance/subprojects/README.md."
+  - name: .project
+    exception: true
+    reason: "Same as .github — no team access today, org-owners only, planned steering-committee ownership."
+
+  - name: api
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: []
+        note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
+  - name: artifacts
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
+  - name: artwork
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: []
+        note: "Repo isn't reflected in any governance/subprojects/*.md listing at all yet (see top-level CLAUDE.md's note on this gap), so no owner is documented anywhere."
+  - name: barman-cloud
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: []
+        note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
+  - name: chaos-testing
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [gbartolini, mnencia, fcanovai, XploY04]
+  - name: charts
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [fcanovai, gbartolini, leonardoce, mnencia, itay-grudev]
+      - path: "/charts/cluster/"
+        teams: []
+        users: [itay-grudev, phisco]
+  - name: ciclops
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [jsilvela, NiccoloFei]
+  - name: cloudnative-pg
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: []
+        note: "No whole-repo owner beyond the maintainer committee documented in governance/subprojects/core-projects.md — only the three path-scoped rows below are documented."
+      - path: "/docs/"
+        teams: []
+        users: [jsilvela]
+      - path: "/config/olm-*/"
+        teams: []
+        users: [NiccoloFei]
+      - path: "/.github/ /hack/ /tests/"
+        teams: []
+        users: [NiccoloFei, litaocdl, jsilvela]
+        note: "Governance documents this as one combined 'Testing' scope covering all three paths, not three separate rows; split into three CODEOWNERS lines with identical owners when generating the real file."
+  - name: cloudnative-pg.github.io
+    rules:
+      - path: "*"
+        teams: [maintainers, web]
+        users: [gbartolini, jsilvela, FloorD, mnencia, leonardoce]
+  - name: cnpg-i
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, armru]
+  - name: cnpg-i-hello-world
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, armru]
+  - name: cnpg-i-machinery
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, armru]
+  - name: cnpg-infra
+    rules:
+      - path: "*"
+        teams: [admins]
+        users: []
+        note: "Not in governance/subprojects/*.md — it's org-control infrastructure like governance/.project/.github, not a subproject deliverable (see governance/subprojects/README.md). Owned by admins rather than maintainers because it holds real org-admin capability (repo settings, teams, CODEOWNERS enforcement for every other repo)."
+  - name: cnpg-playground
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, ardentperf]
+  - name: cnpg-template
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: []
+        note: "No whole-repo owner documented in governance/subprojects/supply-chain.md."
+  - name: daggerverse
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, NiccoloFei, jbattiato]
+  - name: docs
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, SaxenaAnushka102]
+  - name: github-test
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: []
+        note: "No whole-repo owner documented in governance/subprojects/supply-chain.md."
+  - name: governance
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: []
+        note: "Steering/CNCF-owned control repo, not part of any subproject — no individual whole-repo owner documented beyond the maintainer committee itself."
+  - name: grafana-dashboards
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [itay-grudev, phisco]
+  - name: klio
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: []
+        note: "Newly added repo, not yet reflected in any governance/subprojects/*.md listing — no owner documented anywhere yet. Worth a routine editorial addition to the relevant subprojects file (see subprojects/README.md — no vote needed for that)."
+  - name: machinery
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: []
+        note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
+  - name: pgbouncer-containers
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [gbartolini, mnencia, leonardoce, NiccoloFei, litaocdl]
+  - name: plugin-barman-cloud
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
+  - name: postgis-containers
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [gbartolini, mnencia, leonardoce, fcanovai, NiccoloFei, litaocdl]
+  - name: postgres-containers
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [gbartolini, mnencia, fcanovai, NiccoloFei, litaocdl]
+  - name: postgres-extensions-containers
+    rules:
+      - path: "*"
+        teams: [maintainers, extensions-maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
+        note: "Real current CODEOWNERS lists @GabriFedi97 by name instead of via extensions-maintainers team membership — see this file's header for why the team reference is preferred going forward."
+      - path: "/timescaledb-oss/"
+        teams: [extensions-maintainers]
+        users: [shusaan]
+      - path: "/wal2json/"
+        teams: [extensions-maintainers]
+        users: [solidDoWant]
+      - path: "/pg-ivm/"
+        teams: [extensions-maintainers]
+        users: [shusaan]
+  - name: postgres-keycloak-oauth-validator
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, armru, y-tabata]
+  - name: postgres-trunk-containers
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [NiccoloFei, fcanovai, gbartolini, jbattiato, litaocdl, mnencia]
+  - name: webtest
+    rules:
+      - path: "*"
+        teams: [maintainers]
+        users: [leonardoce, mnencia, gbartolini, fcanovai, armru]
