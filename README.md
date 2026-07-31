@@ -74,6 +74,30 @@ half-completed run before that happens.
 | `check-repo-settings.sh [repo]` | Read-only audit of repo settings (branch protection, teams, collaborators, security features) against the policy files and the GitHub-API-checkable subset of the [OSPS Baseline checklist](https://baseline.openssf.org/versions/2026-02-19-checklist.md) → `repo-settings-report.md` |
 | `fix-repo-settings.sh <repo> [--apply]` | Remediates one repo against the policy files. **Defaults to dry-run** — always review the diff before re-running with `--apply`. Only ever raises settings, never lowers an existing stricter one |
 
+## Adding a new repo
+
+`bootstrap.sh` only clones what's *already* in `managed-repos.yaml`, and
+`update-managed-repos.sh` only *adds* a repo to that file once it's already
+cloned as a sibling with a verified `origin` remote — so for a genuinely
+new repo, one manual step has to break that cycle:
+
+1. If the repo doesn't exist on GitHub yet, create it:
+   `gh repo create cloudnative-pg/<name> ...`
+2. Clone it as a sibling of `cnpg-infra` — this is the step that breaks the
+   chicken-and-egg, nothing else can do it for you:
+   `git clone https://github.com/cloudnative-pg/<name>.git`
+3. Run `./update-managed-repos.sh` — it'll now find the new sibling clone
+   and add it to `managed-repos.yaml`.
+4. Optionally add policy entries for it in `repo-policy.yaml` (if it needs
+   a settings exception) and `componentowners-policy.yaml` (its CODEOWNERS
+   ownership) — not required, but worth doing so it doesn't silently fall
+   back to bare defaults with no documented owner.
+5. Run `./fix-repo-settings.sh <name>` (dry-run first, review the diff,
+   then `--apply`) to bring it up to the settings baseline.
+
+Everything after step 2 is automated; step 2 is the one part that has to
+happen by hand.
+
 ## Conventions
 
 Same as every other repo in the org — DCO sign-off, Conventional Commits,
