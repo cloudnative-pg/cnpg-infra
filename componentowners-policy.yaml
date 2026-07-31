@@ -132,6 +132,12 @@ repositories:
       - path: "*"
         teams: [maintainers]
         users: [leonardoce, mnencia, gbartolini, fcanovai, armru]
+  - name: cnpg-infra
+    rules:
+      - path: "*"
+        teams: [admins]
+        users: []
+        note: "Not in governance/subprojects/*.md — it's org-control infrastructure like governance/.project/.github, not a subproject deliverable (see governance/subprojects/README.md). Owned by admins rather than maintainers because it holds real org-admin capability (repo settings, teams, CODEOWNERS enforcement for every other repo)."
   - name: cnpg-playground
     rules:
       - path: "*"
