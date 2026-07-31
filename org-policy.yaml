@@ -1,0 +1,32 @@
+# Org-wide access policy — settings that apply identically across every
+# managed repo (see managed-repos.yaml), rather than being configured
+# per-repo. Hand-maintained, like repo-policy.yaml and codeowners-policy.yaml
+# — nothing regenerates this file.
+#
+# Deliberately separate from those two per-repo files: a rule that should
+# hold for every single repo belongs here once, not repeated 31 times
+# across per-repo entries. If a setting only applies to *some* repos, or
+# needs a repo-specific reason, it belongs in repo-policy.yaml or
+# codeowners-policy.yaml instead, not here.
+#
+# global_admin_teams
+#   Teams that should have `admin` permission on every managed repo,
+#   without needing to be listed in that repo's own CODEOWNERS or
+#   repo-policy.yaml entry. fix-repo-settings.sh (in a later step) will use
+#   this list to grant/verify admin access org-wide — a repo's own config
+#   files never need to mention these teams at all.
+#
+#   Note: per teams.yaml's last snapshot, `admins` already has `admin` on
+#   most repos but not all — e.g. it only has `read` on webtest. That kind
+#   of drift is exactly what this global policy is meant to catch and fix
+#   once wired into fix-repo-settings.sh, rather than relying on someone
+#   noticing a repo where the admin grant was never made.
+#
+# Adding or removing a team here is an operational call, same as
+# repo-policy.yaml entries — not a governance decision requiring a vote
+# (see governance/CLAUDE.md) — but changing who has org-wide admin on
+# every repo is high-impact, so treat this file's edits with more care
+# than a routine repo-policy.yaml addition.
+
+global_admin_teams:
+  - admins

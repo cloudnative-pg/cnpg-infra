@@ -1,0 +1,107 @@
+# Repo-specific exceptions to the org-wide settings baseline.
+#
+# Hand-maintained — unlike managed-repos.yaml, this file is NOT regenerated
+# by any script. It's the place to record *why* a given repo intentionally
+# deviates from the default baseline that check-repo-settings.sh audits and
+# fix-repo-settings.sh enforces, so the reasoning survives even if the
+# person who made the call isn't around to ask.
+#
+# Adding a repo here is an operational call about that one repo's settings,
+# not a governance decision (see governance/CLAUDE.md) — no vote needed,
+# just a clear reason recorded below.
+#
+# Categories:
+#
+#   automated
+#     The repo's default-branch content is machine-published from another
+#     repo where it was already authored and reviewed — there is no
+#     independent human authorship happening in *this* repo, so requiring
+#     PR review here is redundant with the review that already happened
+#     upstream. fix-repo-settings.sh does not force a required-reviews floor
+#     on repos in this category (it leaves required_pull_request_reviews as
+#     whatever it currently is, instead of raising it to >=1); it still
+#     blocks force-push/deletion on the default branch and still enables
+#     the security features (secret scanning, Dependabot), since those are
+#     unrelated to the review-gate question. check-repo-settings.sh marks
+#     these repos so a missing PR-review requirement doesn't read as a gap
+#     in the audit report.
+#
+# required_reviews (optional, integer)
+#   Overrides the org default floor of 1 required approving review.
+#   fix-repo-settings.sh still only ever raises — never lowers — an
+#   existing stricter value, so this sets a higher floor for repos that
+#   need it, it can't be used to weaken a repo below 1. Repos not listed
+#   here (or listed without this field) get the default floor of 1.
+#
+# squash_merge_message (optional, PR_BODY | COMMIT_MESSAGES)
+#   Overrides the org default of PR_BODY for squash_merge_commit_message
+#   (what populates the commit message body when a PR is squash-merged).
+#   PR_BODY uses the pull request's own description; COMMIT_MESSAGES
+#   concatenates the individual commit messages from the branch instead.
+#   Not yet used by any repo — documented here so the mechanism exists when
+#   one is needed; every repo currently gets the PR_BODY default via
+#   fix-repo-settings.sh regardless of whether it's listed below.
+#
+# pages_* (optional — enabled, build_type, branch, path, cname)
+#   Documents the expected GitHub Pages configuration for a repo that
+#   serves one, so check-repo-settings.sh can flag drift (Pages disabled,
+#   or serving from the wrong branch/build type) instead of a silently
+#   broken cloudnative-pg.io. Values below reflect each repo's actual,
+#   working configuration at the time this was written — not an assumed
+#   default — since Pages setup varies too much per repo (build_type,
+#   source branch, custom domain) to have one. fix-repo-settings.sh does
+#   NOT enforce or auto-create Pages config from this today (see its
+#   header comment) — getting Pages wrong can take a production site
+#   down, so that's deliberately left to a human, at least for now.
+#     pages_enabled:    true | false
+#     pages_build_type: workflow (deployed by a GitHub Actions workflow,
+#                       e.g. actions/deploy-pages) | legacy (deployed by
+#                       pushing pre-built content to a branch GitHub serves
+#                       directly, e.g. peaceiris/actions-gh-pages)
+#     pages_branch:     source branch Pages serves from
+#     pages_path:       source path within that branch (almost always "/")
+#     pages_cname:      custom domain, if any (omit the field if none)
+#
+# Fields:
+#   name:                 repo name, must match an entry in managed-repos.yaml
+#   category:             automated (only category defined so far)
+#   reason:               why this repo has an exception — single line, no
+#                         folded blocks, so the simple awk/grep parsing in
+#                         the scripts stays reliable
+#   upstream:             org/repo this one re-publishes from, if applicable
+#                         (only meaningful for category: automated)
+#   required_reviews:     integer floor for required approving reviews, if
+#                         higher than the org default of 1
+#   squash_merge_message: PR_BODY (org default, so unused today) |
+#                         COMMIT_MESSAGES
+#   pages_*:              see above
+
+repositories:
+  - name: docs
+    category: automated
+    reason: "Publishes documentation content already authored and reviewed in cloudnative-pg/cloudnative-pg (docs/); this repo only auto-publishes it, so a mandatory PR-review gate here would be redundant, not a real second review."
+    upstream: cloudnative-pg/cloudnative-pg
+    pages_enabled: true
+    pages_build_type: workflow
+    pages_branch: main
+    pages_path: /
+  - name: cloudnative-pg
+    required_reviews: 2
+    reason: "The main operator — high blast radius for a bad merge, two-maintainer review is the existing project convention (see cloudnative-pg/CLAUDE.md)."
+  - name: plugin-barman-cloud
+    required_reviews: 2
+    reason: "Reference CNPG-I backup/restore plugin; backup/restore correctness bugs are high-severity, warrants the same two-review bar as the operator."
+    pages_enabled: true
+    pages_build_type: workflow
+    pages_branch: main
+    pages_path: /
+  - name: klio
+    required_reviews: 2
+    reason: "Per Gabriele, same two-review bar as the other Core Projects components."
+  - name: cloudnative-pg.github.io
+    reason: "The cloudnative-pg.io landing site — served via legacy (branch-based) Pages from gh-pages, built by hugo_build.yml using peaceiris/actions-gh-pages, unlike docs/ and plugin-barman-cloud which use the newer Actions-workflow Pages build type."
+    pages_enabled: true
+    pages_build_type: legacy
+    pages_branch: gh-pages
+    pages_path: /
+    pages_cname: cloudnative-pg.io
