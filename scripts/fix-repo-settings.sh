@@ -71,7 +71,7 @@
 set -uo pipefail
 
 ORG="cloudnative-pg"
-INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$INFRA_ROOT/managed-repos.yaml"
 POLICY="$INFRA_ROOT/repo-policy.yaml"
 # The ruleset this script manages is named after the branch it protects

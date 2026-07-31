@@ -30,7 +30,7 @@ set -uo pipefail
 
 ORG="cloudnative-pg"
 ADMIN_TEAM="admins"
-INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE_ROOT="$(cd "$INFRA_ROOT/.." && pwd)"
 MANIFEST="$INFRA_ROOT/managed-repos.yaml"
 

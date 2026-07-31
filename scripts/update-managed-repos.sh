@@ -11,7 +11,7 @@
 set -euo pipefail
 
 ORG="cloudnative-pg"
-INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE_ROOT="$(cd "$INFRA_ROOT/.." && pwd)"
 OUTPUT="$INFRA_ROOT/managed-repos.yaml"
 

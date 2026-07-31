@@ -17,7 +17,7 @@
 set -uo pipefail
 
 ORG="cloudnative-pg"
-INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT="$INFRA_ROOT/teams.yaml"
 
 command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1; }

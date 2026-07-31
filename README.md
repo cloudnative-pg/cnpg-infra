@@ -39,7 +39,7 @@ an admin has to actually run them — which is the point, not a limitation.
 
    ```sh
    cd cnpg-infra
-   ./bootstrap.sh
+   ./scripts/bootstrap.sh
    ```
 
 The admin-team check is a fail-fast sanity check, not the real security
@@ -64,15 +64,15 @@ half-completed run before that happens.
 | `componentowners-policy.yaml` | Per-repo CODEOWNERS content — both the catch-all `*` rule and any path-scoped rules, each as teams + users |
 | `org-policy.yaml` | Rules that apply identically to every repo (e.g. which teams get `admin` everywhere), so they don't need repeating per-repo |
 
-**Scripts:**
+**Scripts (all in `scripts/`, YAML config stays in the repo root):**
 
 | Script | Effect |
 |---|---|
-| `bootstrap.sh` | Checks admin-team membership, clones any managed repo missing as a sibling |
-| `update-managed-repos.sh` | Rebuilds `managed-repos.yaml` from live GitHub state |
-| `update-teams.sh` | Rebuilds `teams.yaml` from live GitHub state |
-| `check-repo-settings.sh [repo]` | Read-only audit of repo settings (branch protection, teams, collaborators, security features) against the policy files and the GitHub-API-checkable subset of the [OSPS Baseline checklist](https://baseline.openssf.org/versions/2026-02-19-checklist.md) → `repo-settings-report.md` |
-| `fix-repo-settings.sh <repo> [--apply]` | Remediates one repo against the policy files. **Defaults to dry-run** — always review the diff before re-running with `--apply`. Only ever raises settings, never lowers an existing stricter one |
+| `scripts/bootstrap.sh` | Checks admin-team membership, clones any managed repo missing as a sibling |
+| `scripts/update-managed-repos.sh` | Rebuilds `managed-repos.yaml` from live GitHub state |
+| `scripts/update-teams.sh` | Rebuilds `teams.yaml` from live GitHub state |
+| `scripts/check-repo-settings.sh [repo]` | Read-only audit of repo settings (branch protection, teams, collaborators, security features) against the policy files and the GitHub-API-checkable subset of the [OSPS Baseline checklist](https://baseline.openssf.org/versions/2026-02-19-checklist.md) → `repo-settings-report.md` |
+| `scripts/fix-repo-settings.sh <repo> [--apply]` | Remediates one repo against the policy files. **Defaults to dry-run** — always review the diff before re-running with `--apply`. Only ever raises settings, never lowers an existing stricter one |
 
 ## Conventions
 
