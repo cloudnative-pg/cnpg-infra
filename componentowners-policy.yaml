@@ -209,13 +209,13 @@ repositories:
         users: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
         note: "Real current CODEOWNERS lists @GabriFedi97 by name instead of via extensions-maintainers team membership — see this file's header for why the team reference is preferred going forward."
       - path: "/timescaledb-oss/"
-        teams: []
+        teams: [extensions-maintainers]
         users: [shusaan]
       - path: "/wal2json/"
-        teams: []
+        teams: [extensions-maintainers]
         users: [solidDoWant]
       - path: "/pg-ivm/"
-        teams: []
+        teams: [extensions-maintainers]
         users: [shusaan]
   - name: postgres-keycloak-oauth-validator
     rules:
