@@ -13,7 +13,7 @@ set -euo pipefail
 ORG="cloudnative-pg"
 INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE_ROOT="$(cd "$INFRA_ROOT/.." && pwd)"
-OUTPUT="$INFRA_ROOT/managed-repos.yaml"
+OUTPUT="$INFRA_ROOT/generated/managed-repos.yaml"
 
 command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1; }
 command -v jq >/dev/null 2>&1 || { echo "error: jq is required" >&2; exit 1; }

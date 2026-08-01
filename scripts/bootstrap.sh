@@ -32,7 +32,7 @@ ORG="cloudnative-pg"
 ADMIN_TEAM="admins"
 INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE_ROOT="$(cd "$INFRA_ROOT/.." && pwd)"
-MANIFEST="$INFRA_ROOT/managed-repos.yaml"
+MANIFEST="$INFRA_ROOT/generated/managed-repos.yaml"
 
 command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1; }
 command -v git >/dev/null 2>&1 || { echo "error: git is required" >&2; exit 1; }

@@ -34,8 +34,8 @@ an admin has to actually run them — which is the point, not a limitation.
 
 3. From inside `cnpg-infra/`, run the bootstrap script. It checks you're
    an active member of the `admins` team, then clones every repo listed in
-   `managed-repos.yaml` that isn't already a sibling directory (existing
-   clones are left completely untouched):
+   `generated/managed-repos.yaml` that isn't already a sibling directory
+   (existing clones are left completely untouched):
 
    ```sh
    cd cnpg-infra
@@ -49,12 +49,12 @@ half-completed run before that happens.
 
 ## What's here
 
-**Generated files — do not hand-edit, re-run the script that owns them:**
+**Generated files, in `generated/` — do not hand-edit, re-run the script that owns them:**
 
 | File | Rebuilt by | Contents |
 |---|---|---|
-| `managed-repos.yaml` | `update-managed-repos.sh` | Every non-archived `cloudnative-pg/*` repo cloned as a sibling of `cnpg-infra`, with its `origin` remote verified |
-| `teams.yaml` | `update-teams.sh` | Live GitHub team roster (org owners, org members, each team's members) — deliberately does NOT track per-repo access; see the policy files below for that |
+| `generated/managed-repos.yaml` | `scripts/update-managed-repos.sh` | Every non-archived `cloudnative-pg/*` repo cloned as a sibling of `cnpg-infra`, with its `origin` remote verified |
+| `generated/teams.yaml` | `scripts/update-teams.sh` | Live GitHub team roster (org owners, org members, each team's members) — deliberately does NOT track per-repo access; see the policy files below for that |
 
 **Hand-maintained policy files — the desired state the scripts below check/enforce against:**
 
@@ -70,17 +70,17 @@ half-completed run before that happens.
 | Script | Effect |
 |---|---|
 | `scripts/bootstrap.sh` | Checks admin-team membership, clones any managed repo missing as a sibling |
-| `scripts/update-managed-repos.sh` | Rebuilds `managed-repos.yaml` from live GitHub state |
-| `scripts/update-teams.sh` | Rebuilds `teams.yaml` from live GitHub state |
+| `scripts/update-managed-repos.sh` | Rebuilds `generated/managed-repos.yaml` from live GitHub state |
+| `scripts/update-teams.sh` | Rebuilds `generated/teams.yaml` from live GitHub state |
 | `scripts/check-repo-settings.sh [repo]` | Read-only audit of repo settings (branch protection, teams, collaborators, security features) against the policy files and the GitHub-API-checkable subset of the [OSPS Baseline checklist](https://baseline.openssf.org/versions/2026-02-19-checklist.md) → `repo-settings-report.md` |
 | `scripts/fix-repo-settings.sh <repo> [--apply]` | Remediates one repo against the policy files. **Defaults to dry-run** — always review the diff before re-running with `--apply`. Only ever raises settings, never lowers an existing stricter one |
 
 ## Adding a new repo
 
-`bootstrap.sh` only clones what's *already* in `managed-repos.yaml`, and
-`update-managed-repos.sh` only *adds* a repo to that file once it's already
-cloned as a sibling with a verified `origin` remote — so for a genuinely
-new repo, one manual step has to break that cycle:
+`bootstrap.sh` only clones what's *already* in `generated/managed-repos.yaml`,
+and `update-managed-repos.sh` only *adds* a repo to that file once it's
+already cloned as a sibling with a verified `origin` remote — so for a
+genuinely new repo, one manual step has to break that cycle:
 
 1. If the repo doesn't exist on GitHub yet, create it:
    `gh repo create cloudnative-pg/<name> ...`
@@ -88,7 +88,7 @@ new repo, one manual step has to break that cycle:
    chicken-and-egg, nothing else can do it for you:
    `git clone https://github.com/cloudnative-pg/<name>.git`
 3. Run `./scripts/update-managed-repos.sh` — it'll now find the new sibling
-   clone and add it to `managed-repos.yaml`.
+   clone and add it to `generated/managed-repos.yaml`.
 4. Optionally add policy entries for it in `repo-policy.yaml` (if it needs
    a settings exception) and `componentowners-policy.yaml` (its CODEOWNERS
    ownership) — not required, but worth doing so it doesn't silently fall
