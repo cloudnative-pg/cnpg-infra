@@ -1,0 +1,184 @@
+# Per-repo importance class and governance subproject classification.
+#
+# Hand-maintained, like repo-policy.yaml, componentowners-policy.yaml, and
+# org-policy.yaml — nothing regenerates this file. Unlike those three,
+# every managed repo gets an entry here (not just exceptions), since every
+# repo has *some* class, the same way every repo has *some* set of owners.
+#
+# class drives the settings floor fix-repo-settings.sh enforces. Only
+# required-reviews and code-owner-review actually change by class — the
+# rest of the floor below (force-push/deletion blocked, linear history)
+# already applied to every repo before this classification scheme existed,
+# so it's listed for completeness, not because class changes it:
+#
+#           reviews   code-owner-review   force-push   deletion   linear
+#   A         2            forced           blocked     blocked  required
+#   B         1            forced           blocked     blocked  required
+#   C         1          untouched          blocked     blocked  required
+#
+#   A  critical    Runs in or is directly load-bearing for production —
+#                  the operator, its data-safety-critical libraries, the
+#                  images actually deployed, the interface every plugin
+#                  depends on.
+#   B  important   Real consequences if wrong, but not itself production
+#                  runtime: public docs/website, CI/CD infra other repos
+#                  depend on, an optional module some adopters run.
+#   C  low-stakes  Templates, examples, internal test tooling, learning
+#                  environments — explicitly not for production use.
+#
+# A repo also listed in repo-policy.yaml under category "automated" has
+# its review-count and code-owner-review requirements skipped regardless
+# of class — a bot publishing already-reviewed content can't satisfy a
+# human PR-review gate the same way a person can. Class still governs
+# everything else for that repo. `artifacts` below is the example: class A
+# (checksums/catalogs are load-bearing for supply-chain trust) but also
+# category automated (a bot publishes them, so no review-count floor is
+# forced) — see repo-policy.yaml's header for the full rationale.
+#
+# subproject matches governance/subprojects/*.md's grouping. org-control
+# is for .github/.project/governance/cnpg-infra, which aren't part of any
+# subproject (see governance/subprojects/README.md) and so have no class
+# either — they're governed by the existing admins/steering-based model,
+# not this scheme. "unclassified" means governance/subprojects/*.md
+# doesn't document one yet — a real gap, not an oversight here.
+#
+# Fields:
+#   name:       repo name, must match an entry in managed-repos.yaml
+#   class:      A | B | C | n/a (org-control repos)
+#   subproject: core-projects | supply-chain | community-ecosystem |
+#               extensibility | org-control | unclassified
+#   reason:     why this class, when it's not obvious from the repo's own
+#               description alone
+
+repositories:
+  # --- org-control: outside this scheme entirely ---------------------------
+  - name: .github
+    class: n/a
+    subproject: org-control
+  - name: .project
+    class: n/a
+    subproject: org-control
+  - name: governance
+    class: n/a
+    subproject: org-control
+  - name: cnpg-infra
+    class: n/a
+    subproject: org-control
+
+  # --- class A: critical ------------------------------------------------------
+  - name: cloudnative-pg
+    class: A
+    subproject: core-projects
+    reason: "The operator itself — the most important repo in the org."
+  - name: api
+    class: A
+    subproject: core-projects
+    reason: "The operator's own API types, split out for Go module reasons — a bug here breaks the operator's core contract."
+  - name: machinery
+    class: A
+    subproject: core-projects
+    reason: "Shared internal library consumed directly by the operator."
+  - name: barman-cloud
+    class: A
+    subproject: core-projects
+    reason: "Backup/restore library — correctness bugs here risk data loss, not just downtime."
+  - name: charts
+    class: A
+    subproject: supply-chain
+    reason: "How the operator and clusters actually get deployed — a broken chart breaks every production rollout that uses it."
+  - name: postgres-containers
+    class: A
+    subproject: supply-chain
+    reason: "The PostgreSQL operand image running in every user's database pods."
+  - name: postgres-extensions-containers
+    class: A
+    subproject: supply-chain
+    reason: "Extension images loaded directly into production databases."
+  - name: pgbouncer-containers
+    class: A
+    subproject: supply-chain
+    reason: "Connection pooling image used in production."
+  - name: postgis-containers
+    class: A
+    subproject: supply-chain
+    reason: "PostGIS-bundled production operand image."
+  - name: artifacts
+    class: A
+    subproject: supply-chain
+    reason: "Generated manifests/checksums/catalogs are load-bearing for supply-chain trust, even though the content itself is bot-published (see repo-policy.yaml's automated category, which also applies here)."
+  - name: cnpg-i
+    class: A
+    subproject: extensibility
+    reason: "The CNPG-I interface spec itself — a breaking change here breaks every plugin that implements it."
+  - name: plugin-barman-cloud
+    class: A
+    subproject: extensibility
+    reason: "The reference backup/restore plugin — same data-safety stakes as barman-cloud itself."
+  - name: klio
+    class: A
+    subproject: extensibility
+    reason: "A backup and recovery solution compliant with CNPG-I — same data-safety stakes as plugin-barman-cloud."
+
+  # --- class B: important -----------------------------------------------------
+  - name: daggerverse
+    class: B
+    subproject: supply-chain
+    reason: "CI/CD infrastructure other repos' pipelines depend on."
+  - name: chaos-testing
+    class: B
+    subproject: supply-chain
+    reason: "Resilience-testing infra — valuable signal, but not itself production runtime code."
+  - name: docs
+    class: B
+    subproject: community-ecosystem
+    reason: "Public-facing documentation; already category: automated in repo-policy.yaml."
+  - name: cloudnative-pg.github.io
+    class: B
+    subproject: community-ecosystem
+    reason: "The public project website."
+  - name: grafana-dashboards
+    class: B
+    subproject: community-ecosystem
+    reason: "Dashboards used to monitor production CNPG clusters, though not runtime code themselves."
+  - name: cnpg-i-machinery
+    class: B
+    subproject: extensibility
+    reason: "Shared Go code for CNPG-I plugins — a library, not the spec itself."
+  - name: postgres-keycloak-oauth-validator
+    class: B
+    subproject: extensibility
+    reason: "A real Postgres module used in production by whoever adopts it, though niche/optional."
+
+  # --- class C: low-stakes ------------------------------------------------
+  - name: postgres-trunk-containers
+    class: C
+    subproject: supply-chain
+    reason: "Explicitly for early testing against PostgreSQL's development branch — not something anyone runs in production, unlike the other container-image repos."
+  - name: cnpg-template
+    class: C
+    subproject: supply-chain
+    reason: "A template for new repos, not a running component."
+  - name: ciclops
+    class: C
+    subproject: supply-chain
+    reason: "CI reporting tool."
+  - name: github-test
+    class: C
+    subproject: supply-chain
+    reason: "Literal playground for testing GitHub Actions."
+  - name: cnpg-playground
+    class: C
+    subproject: community-ecosystem
+    reason: "For learning purposes only, explicitly must not be used in production (see its own CLAUDE.md)."
+  - name: webtest
+    class: C
+    subproject: community-ecosystem
+    reason: "Internal testing tooling for the website, not the website itself."
+  - name: cnpg-i-hello-world
+    class: C
+    subproject: extensibility
+    reason: "Explicitly a template/example plugin."
+  - name: artwork
+    class: C
+    subproject: unclassified
+    reason: "Logos/brand assets — no runtime impact. Also not yet reflected in any governance/subprojects/*.md listing (see top-level CLAUDE.md's note on this gap)."

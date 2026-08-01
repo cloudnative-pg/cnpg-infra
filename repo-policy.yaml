@@ -27,11 +27,13 @@
 #     in the audit report.
 #
 # required_reviews (optional, integer)
-#   Overrides the org default floor of 1 required approving review.
-#   fix-repo-settings.sh still only ever raises — never lowers — an
-#   existing stricter value, so this sets a higher floor for repos that
-#   need it, it can't be used to weaken a repo below 1. Repos not listed
-#   here (or listed without this field) get the default floor of 1.
+#   A standalone floor override, kept for a repo that needs one before (or
+#   instead of) being classified in repo-tiers.yaml. Most repos get their
+#   review-count floor from repo-tiers.yaml's class instead (A = 2, B/C =
+#   1); fix-repo-settings.sh takes the higher of the two wherever both are
+#   present, and — as always — never lowers an existing stricter value
+#   below either. Not currently used by any repo — every repo that needs a
+#   higher floor is already classified in repo-tiers.yaml.
 #
 # squash_merge_message (optional, PR_BODY | COMMIT_MESSAGES)
 #   Overrides the org default of PR_BODY for squash_merge_commit_message
@@ -85,19 +87,15 @@ repositories:
     pages_build_type: workflow
     pages_branch: main
     pages_path: /
-  - name: cloudnative-pg
-    required_reviews: 2
-    reason: "The main operator — high blast radius for a bad merge, two-maintainer review is the existing project convention (see cloudnative-pg/CLAUDE.md)."
+  - name: artifacts
+    category: automated
+    reason: "Generated manifests/checksums/catalogs are published by automation, not authored PR-by-PR; see repo-tiers.yaml for why this repo is nonetheless class A."
   - name: plugin-barman-cloud
-    required_reviews: 2
-    reason: "Reference CNPG-I backup/restore plugin; backup/restore correctness bugs are high-severity, warrants the same two-review bar as the operator."
+    reason: "Pages config only — review requirements now come from repo-tiers.yaml's class A instead of a standalone override here."
     pages_enabled: true
     pages_build_type: workflow
     pages_branch: main
     pages_path: /
-  - name: klio
-    required_reviews: 2
-    reason: "Per Gabriele, same two-review bar as the other Core Projects components."
   - name: cloudnative-pg.github.io
     reason: "The cloudnative-pg.io landing site — served via legacy (branch-based) Pages from gh-pages, built by hugo_build.yml using peaceiris/actions-gh-pages, unlike docs/ and plugin-barman-cloud which use the newer Actions-workflow Pages build type."
     pages_enabled: true

@@ -24,6 +24,7 @@ ORG="cloudnative-pg"
 INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$INFRA_ROOT/managed-repos.yaml"
 POLICY="$INFRA_ROOT/repo-policy.yaml"
+TIERS="$INFRA_ROOT/repo-tiers.yaml"
 OUTPUT="$INFRA_ROOT/repo-settings-report.md"
 
 command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1; }
@@ -53,6 +54,14 @@ policy_field() { # $1 = repo name, $2 = field name (e.g. pages_branch) -> prints
     /^  - name: / { name=$3; found_name=(name==want) }
     found_name && index($0, "    " field)==1 { print $2; exit }
   ' "$POLICY"
+}
+
+tier_field() { # $1 = repo name, $2 = field name (class/subproject/reason) -> prints value, or "" if unset
+  [ -f "$TIERS" ] || return
+  awk -v want="$1" -v field="$2:" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && index($0, "    " field)==1 { sub("^    " field " ", ""); gsub(/^"|"$/, ""); print; exit }
+  ' "$TIERS"
 }
 
 if [ $# -ge 1 ]; then
@@ -132,9 +141,10 @@ org_default_perm="$(echo "$org_json" | jq -r '.default_repository_permission // 
   echo "Full detail (team/collaborator lists, status-check names, per-repo OSPS table) is below the matrix, one section per repo."
   echo "🤖 in the Reviews column = repo is classified \`automated\` in [\`repo-policy.yaml\`](repo-policy.yaml); a low/zero review count there is expected, not a gap."
   echo "Merge cfg = how many of {squash merge, rebase merge, suggest-update-branch, delete-branch-on-merge, linear history, squash title = PR title, squash message = PR body} are on; full breakdown per repo below."
+  echo "Class comes from [\`repo-tiers.yaml\`](repo-tiers.yaml): A = critical, B = important, C = low-stakes, n/a = org-control repo, ? = not yet classified."
   echo
-  echo "| Repo | Public | Protected | Reviews | Owners | No force-push | No delete | Checks | Secrets | Push guard | Dependabot | Vuln alerts | LICENSE | Merge cfg |"
-  echo "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |"
+  echo "| Repo | Class | Public | Protected | Reviews | Owners | No force-push | No delete | Checks | Secrets | Push guard | Dependabot | Vuln alerts | LICENSE | Merge cfg |"
+  echo "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |"
 } > "$SUMMARY_TMP.header"
 
 # --- per-repo audit -----------------------------------------------------------
@@ -244,6 +254,9 @@ for repo in "${REPOS[@]}"; do
 
   category="$(policy_category "$repo")"
   reason="$(policy_reason "$repo")"
+  repo_class="$(tier_field "$repo" class)"
+  [ -z "$repo_class" ] && repo_class="?"
+  repo_subproject="$(tier_field "$repo" subproject)"
 
   pages_expected="$(policy_field "$repo" pages_enabled)"
   if [ "$pages_expected" = "true" ]; then
@@ -276,8 +289,9 @@ for repo in "${REPOS[@]}"; do
   [ "$squash_message" = "PR_BODY" ] && merge_cfg_score=$((merge_cfg_score + 1))
   merge_cfg_cell="$([ "$merge_cfg_score" -eq 7 ] && echo "✅7/7" || echo "⚠️${merge_cfg_score}/7")"
   {
-    printf '| [%s](#%s) | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
+    printf '| [%s](#%s) | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
       "$repo" "$(echo "$repo" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')" \
+      "$repo_class" \
       "$(icon "$([ "$visibility" = "public" ] && echo true || echo false)")" \
       "$(icon "$has_protection")" \
       "$reviews_cell" \
@@ -298,6 +312,7 @@ for repo in "${REPOS[@]}"; do
     echo "### $repo"
     echo
     echo "<https://github.com/$full> — visibility: \`$visibility\`, default branch: \`$default_branch\`$( [ "$has_admin" != "true" ] && echo " — ⚠️ auditing token lacks admin access here, security_and_analysis fields may be incomplete" )"
+    echo "Class: \`$repo_class\` · Subproject: \`${repo_subproject:-unclassified}\` (see [\`repo-tiers.yaml\`](repo-tiers.yaml))"
     if [ "$category" != "standard" ]; then
       echo
       echo "> 🤖 **Category: $category** (see [\`repo-policy.yaml\`](repo-policy.yaml)) — $reason"
