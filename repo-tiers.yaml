@@ -117,7 +117,7 @@ repositories:
   - name: klio
     class: A
     subproject: extensibility
-    reason: "Per Gabriele."
+    reason: "A backup and recovery solution compliant with CNPG-I — same data-safety stakes as plugin-barman-cloud."
 
   # --- class B: important -----------------------------------------------------
   - name: daggerverse
