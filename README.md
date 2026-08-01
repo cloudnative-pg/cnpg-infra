@@ -60,7 +60,8 @@ half-completed run before that happens.
 
 | File | Scope |
 |---|---|
-| `repo-policy.yaml` | Per-repo exceptions to the settings baseline (e.g. a repo whose content is machine-published and so doesn't need a PR-review gate; a repo that needs a stricter-than-default review count) |
+| `repo-policy.yaml` | Per-repo exceptions to the settings baseline (e.g. a repo whose content is machine-published and so doesn't need a PR-review gate; a standalone review-count override for a repo not yet in `repo-tiers.yaml`) |
+| `repo-tiers.yaml` | Every managed repo's importance class (A = critical, B = important, C = low-stakes) and governance subproject. Class drives the settings floor: A gets 2 required reviews + code-owner review forced on, B gets 1 + code-owner review forced on, C gets the org default (1, untouched code-owner-review setting) |
 | `componentowners-policy.yaml` | Per-repo CODEOWNERS content — both the catch-all `*` rule and any path-scoped rules, each as teams + users |
 | `org-policy.yaml` | Rules that apply identically to every repo (e.g. which teams get `admin` everywhere), so they don't need repeating per-repo |
 

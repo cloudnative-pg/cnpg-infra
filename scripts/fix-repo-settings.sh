@@ -23,13 +23,18 @@
 #     dev/*, release-*, or any other branch — force-push and deletion stay
 #     allowed there regardless of what this does to the default branch.
 #   - Required approving reviews: raised to at least 1 by default, never
-#     lowered. A repo can get a higher floor via repo-policy.yaml's
-#     `required_reviews` field (e.g. 2 for cloudnative-pg, plugin-barman-cloud,
-#     klio) — still never lowered, just a higher floor than the org default.
-#     EXCEPT for repos listed under category "automated" (content published
-#     by automation from an already-reviewed upstream repo), where no
-#     `pull_request` rule is forced into existence at all, regardless of any
-#     `required_reviews` floor.
+#     lowered. The floor can go higher two ways, and the higher of the two
+#     wins: repo-tiers.yaml's `class` (A = 2, B/C = 1) — the normal
+#     mechanism — or repo-policy.yaml's standalone `required_reviews`
+#     override, kept for repos not yet classified there.
+#   - Code-owner review: forced on for class A/B, left untouched (whatever
+#     it already is) for class C/n/a. EXCEPT for repos listed under
+#     category "automated" (content published by automation from an
+#     already-reviewed upstream repo), where NEITHER the review-count
+#     floor NOR the code-owner-review requirement is forced, regardless of
+#     class — a bot can't satisfy a human PR-review gate the same way a
+#     person can (repo-tiers.yaml's `artifacts` entry is the example:
+#     class A, but also category automated).
 #   - Default branch: force-push and deletion blocked (ruleset rules
 #     `non_fast_forward` + `deletion`), for every repo including "automated"
 #     ones — that protection is unrelated to the review-gate question.
@@ -74,6 +79,7 @@ ORG="cloudnative-pg"
 INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$INFRA_ROOT/managed-repos.yaml"
 POLICY="$INFRA_ROOT/repo-policy.yaml"
+TIERS="$INFRA_ROOT/repo-tiers.yaml"
 # The ruleset this script manages is named after the branch it protects
 # (e.g. "main"), matching GitHub's own convention (see cloudnative-pg/docs'
 # hand-authored ruleset, also named "main") — set once default_branch is known.
@@ -97,6 +103,29 @@ policy_required_reviews() { # $1 = repo name -> prints integer floor, or 1 if un
     found_name && /^    required_reviews:/ { print $2; matched=1; exit }
     END { if (!matched) print 1 }
   ' "$POLICY"
+}
+
+policy_tier() { # $1 = repo name -> prints class (A/B/C), or "C" if unlisted/n/a
+  [ -f "$TIERS" ] || { echo "C"; return; }
+  awk -v want="$1" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && /^    class:/ { print $2; matched=1; exit }
+    END { if (!matched) print "C" }
+  ' "$TIERS"
+}
+
+tier_review_floor() { # $1 = class -> prints the review-count floor that class implies
+  case "$1" in
+    A) echo 2 ;;
+    *) echo 1 ;;  # B, C, n/a: org default, no extra floor
+  esac
+}
+
+tier_forces_code_owner_review() { # $1 = class -> prints true/false
+  case "$1" in
+    A|B) echo true ;;
+    *) echo false ;;
+  esac
 }
 
 repo="${1:-}"
@@ -192,17 +221,28 @@ old_delete_on_merge="$(echo "$repo_json" | jq -r '.delete_branch_on_merge | if .
 old_squash_title="$(echo "$repo_json" | jq -r '.squash_merge_commit_title // "unknown"')"
 old_squash_message="$(echo "$repo_json" | jq -r '.squash_merge_commit_message // "unknown"')"
 
-required_reviews_floor="$(policy_required_reviews "$repo")"
+tier="$(policy_tier "$repo")"
+policy_floor="$(policy_required_reviews "$repo")"
+tier_floor="$(tier_review_floor "$tier")"
+required_reviews_floor=$(( policy_floor > tier_floor ? policy_floor : tier_floor ))
 
 if [ "$category" = "automated" ]; then
   # Never force a review requirement into existence for an automated repo;
   # if one already exists for some other reason (in classic protection or
-  # another ruleset), leave its count untouched rather than flooring it.
+  # another ruleset), leave its count and code-owner-review requirement
+  # untouched rather than flooring them — a bot can't satisfy a human
+  # PR-review gate the same way a person can, regardless of tier.
   new_reviews="$old_reviews"
   force_review_block="$old_had_review_block"
+  new_code_owner="$old_code_owner"
 else
   new_reviews=$(( old_reviews > required_reviews_floor ? old_reviews : required_reviews_floor ))
   force_review_block=true
+  if [ "$(tier_forces_code_owner_review "$tier")" = "true" ]; then
+    new_code_owner=true
+  else
+    new_code_owner="$old_code_owner"
+  fi
 fi
 
 # --- find our own managed ruleset, if one already exists on this repo -----
@@ -214,7 +254,7 @@ new_ruleset_body="$(jq -n \
   --arg name "$RULESET_NAME" \
   --argjson reviews "$new_reviews" \
   --argjson force_review_block "$force_review_block" \
-  --argjson code_owner "$old_code_owner" \
+  --argjson code_owner "$new_code_owner" \
   --argjson dismiss_stale "$old_dismiss_stale" \
   --argjson last_push "$old_last_push" \
   --argjson status_checks "$old_status_checks" \
@@ -245,10 +285,13 @@ new_ruleset_body="$(jq -n \
   }')"
 
 echo "=== $full  (default branch: $default_branch) ==="
+echo "Class: $tier (repo-tiers.yaml)"
 if [ "$category" != "standard" ]; then
-  echo "Category: $category (repo-policy.yaml) — review-count floor skipped, other protections still apply"
+  echo "Category: $category (repo-policy.yaml) — review-count and code-owner-review floors skipped, other protections still apply"
 elif [ "$required_reviews_floor" != "1" ]; then
-  echo "Required-reviews floor: $required_reviews_floor (repo-policy.yaml, org default is 1)"
+  floor_source="repo-tiers.yaml, class $tier"
+  [ "$policy_floor" -gt "$tier_floor" ] && floor_source="repo-policy.yaml override"
+  echo "Required-reviews floor: $required_reviews_floor ($floor_source; org default is 1)"
 fi
 if [ -n "$existing_ruleset_id" ]; then
   echo "Managed via ruleset '$RULESET_NAME' (id $existing_ruleset_id) — will update in place"
@@ -267,6 +310,7 @@ diff_line() { # $1=label $2=old $3=new
 }
 
 diff_line "required approving reviews"        "$old_reviews"      "$new_reviews"
+diff_line "code owner review required"        "$old_code_owner"   "$new_code_owner"
 diff_line "force pushes allowed on $default_branch" "$([ "$old_force_push_blocked" = "true" ] && echo false || echo true)" "false"
 diff_line "deletion allowed on $default_branch"     "$([ "$old_deletion_blocked" = "true" ] && echo false || echo true)"   "false"
 diff_line "linear history required"           "$old_linear_history" "true"
