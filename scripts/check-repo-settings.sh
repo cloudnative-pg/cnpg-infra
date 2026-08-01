@@ -25,6 +25,7 @@ INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$INFRA_ROOT/managed-repos.yaml"
 POLICY="$INFRA_ROOT/repo-policy.yaml"
 TIERS="$INFRA_ROOT/repo-tiers.yaml"
+COMPONENTOWNERS="$INFRA_ROOT/componentowners-policy.yaml"
 OUTPUT="$INFRA_ROOT/repo-settings-report.md"
 
 command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1; }
@@ -64,10 +65,33 @@ tier_field() { # $1 = repo name, $2 = field name (class/subproject/reason) -> pr
   ' "$TIERS"
 }
 
+entry_exists() { # $1 = file, $2 = repo name -> exit 0 if that file has a "- name: <repo>" entry
+  [ -f "$1" ] || return 1
+  grep -q "^  - name: $2\$" "$1"
+}
+
 if [ $# -ge 1 ]; then
   REPOS=("$1")
 else
   mapfile -t REPOS < <(grep -E '^  - name: ' "$MANIFEST" | sed 's/^  - name: //')
+fi
+
+# --- configuration gap check: every repo in managed-repos.yaml should have
+#     an entry in repo-tiers.yaml and componentowners-policy.yaml. Runs over
+#     the FULL manifest regardless of single-repo mode above — a missing
+#     classification is an org-wide health signal, not a per-repo one. ------
+mapfile -t ALL_REPOS < <(grep -E '^  - name: ' "$MANIFEST" | sed 's/^  - name: //')
+missing_tier=()
+missing_componentowners=()
+for r in "${ALL_REPOS[@]}"; do
+  entry_exists "$TIERS" "$r" || missing_tier+=("$r")
+  entry_exists "$COMPONENTOWNERS" "$r" || missing_componentowners+=("$r")
+done
+if [ "${#missing_tier[@]}" -gt 0 ]; then
+  echo "⚠️  Missing from repo-tiers.yaml: ${missing_tier[*]}" >&2
+fi
+if [ "${#missing_componentowners[@]}" -gt 0 ]; then
+  echo "⚠️  Missing from componentowners-policy.yaml: ${missing_componentowners[*]}" >&2
 fi
 
 SUMMARY_TMP="$(mktemp)"
@@ -399,6 +423,15 @@ done
   echo "Source of repo list: [\`managed-repos.yaml\`](managed-repos.yaml) (${#REPOS[@]} repos requested)."
   echo "Reference: [OpenSSF Baseline checklist, 2026-02-19 revision](https://baseline.openssf.org/versions/2026-02-19-checklist.md)."
   echo
+  if [ "${#missing_tier[@]}" -gt 0 ] || [ "${#missing_componentowners[@]}" -gt 0 ]; then
+    echo "> ⚠️ **Configuration gaps** — every repo in \`managed-repos.yaml\` should"
+    echo "> have a matching entry in \`repo-tiers.yaml\` and"
+    echo "> \`componentowners-policy.yaml\`; these don't:"
+    echo ">"
+    [ "${#missing_tier[@]}" -gt 0 ] && echo "> - Missing from \`repo-tiers.yaml\`: ${missing_tier[*]}"
+    [ "${#missing_componentowners[@]}" -gt 0 ] && echo "> - Missing from \`componentowners-policy.yaml\`: ${missing_componentowners[*]}"
+    echo
+  fi
   echo "> **Scope note:** the OSPS Baseline is mostly a documentation/process"
   echo "> standard (published security policy, threat model, release-signing"
   echo "> practice, SBOM, dependency-tracking docs, ...). Of its ~55 items, only"

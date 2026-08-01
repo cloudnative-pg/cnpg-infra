@@ -114,6 +114,11 @@ policy_tier() { # $1 = repo name -> prints class (A/B/C), or "C" if unlisted/n/a
   ' "$TIERS"
 }
 
+entry_exists() { # $1 = file, $2 = repo name -> exit 0 if that file has a "- name: <repo>" entry
+  [ -f "$1" ] || return 1
+  grep -q "^  - name: $2\$" "$1"
+}
+
 tier_review_floor() { # $1 = class -> prints the review-count floor that class implies
   case "$1" in
     A) echo 2 ;;
@@ -221,6 +226,9 @@ old_delete_on_merge="$(echo "$repo_json" | jq -r '.delete_branch_on_merge | if .
 old_squash_title="$(echo "$repo_json" | jq -r '.squash_merge_commit_title // "unknown"')"
 old_squash_message="$(echo "$repo_json" | jq -r '.squash_merge_commit_message // "unknown"')"
 
+if ! entry_exists "$TIERS" "$repo"; then
+  echo "⚠️  '$repo' has no entry in repo-tiers.yaml — defaulting to class C until it's classified." >&2
+fi
 tier="$(policy_tier "$repo")"
 policy_floor="$(policy_required_reviews "$repo")"
 tier_floor="$(tier_review_floor "$tier")"
