@@ -1,9 +1,13 @@
-# Per-repo importance class and governance subproject classification.
+# Per-repo importance class, governance subproject, and GitHub description,
+# all controlled centrally from this one file.
 #
 # Hand-maintained, like repo-policy.yaml, componentowners-policy.yaml, and
 # org-policy.yaml — nothing regenerates this file. Unlike those three,
 # every managed repo gets an entry here (not just exceptions), since every
 # repo has *some* class, the same way every repo has *some* set of owners.
+# check-repo-settings.sh flags any repo in managed-repos.yaml missing an
+# entry here (see its "Configuration gaps" section) instead of silently
+# defaulting, since that's exactly how klio went unclassified for a while.
 #
 # class drives the settings floor fix-repo-settings.sh enforces. Only
 # required-reviews and code-owner-review actually change by class — the
@@ -16,169 +20,224 @@
 #   B         1            forced           blocked     blocked  required
 #   C         1          untouched          blocked     blocked  required
 #
-#   A  critical    Runs in or is directly load-bearing for production —
-#                  the operator, its data-safety-critical libraries, the
-#                  images actually deployed, the interface every plugin
-#                  depends on.
-#   B  important   Real consequences if wrong, but not itself production
-#                  runtime: public docs/website, CI/CD infra other repos
+#   A  critical    Customer-facing runtime or deploy surface: the operator
+#                  itself, the Helm charts users run to install/upgrade it,
+#                  and the operand/extension images that actually run in
+#                  production clusters. These are the repos that should
+#                  progressively adopt every security standard first, since
+#                  a problem here is immediately visible to every user.
+#   B  important   Real consequences if wrong, but not itself the direct
+#                  customer-facing surface: libraries the operator depends
+#                  on (api, machinery, barman-cloud), the CNPG-I interface
+#                  and its plugins, generated/automated supply-chain
+#                  artifacts, public docs/website, CI/CD infra other repos
 #                  depend on, an optional module some adopters run.
 #   C  low-stakes  Templates, examples, internal test tooling, learning
-#                  environments — explicitly not for production use.
+#                  environments, explicitly experimental modules — not
+#                  something adopted in production, or not yet proven
+#                  enough to warrant a stricter floor.
 #
 # A repo also listed in repo-policy.yaml under category "automated" has
 # its review-count and code-owner-review requirements skipped regardless
 # of class — a bot publishing already-reviewed content can't satisfy a
 # human PR-review gate the same way a person can. Class still governs
-# everything else for that repo. `artifacts` below is the example: class A
-# (checksums/catalogs are load-bearing for supply-chain trust) but also
-# category automated (a bot publishes them, so no review-count floor is
-# forced) — see repo-policy.yaml's header for the full rationale.
+# everything else for that repo. `api` and `artifacts` are both automated
+# (see repo-policy.yaml); `artifacts` is class A anyway (its generated YAML
+# manifests are a direct deployment path for many users, not just an input
+# to other tooling) even though "automated" already means class doesn't
+# change its review-count/code-owner-review requirements today.
 #
 # subproject matches governance/subprojects/*.md's grouping. org-control
-# is for .github/.project/governance/cnpg-infra, which aren't part of any
-# subproject (see governance/subprojects/README.md) and so have no class
+# is for repos that aren't part of any subproject and so have no class
 # either — they're governed by the existing admins/steering-based model,
-# not this scheme. "unclassified" means governance/subprojects/*.md
-# doesn't document one yet — a real gap, not an oversight here.
+# not this scheme. `cnpg-template` is grouped here even though governance/
+# subprojects/supply-chain.md currently still lists it under Supply Chain —
+# it's the template every new org repo (including org-control ones) forks
+# from, which makes it org tooling rather than a subproject deliverable;
+# this is a real discrepancy with governance worth reconciling there, not
+# something silently fixed by this file alone. "unclassified" means
+# governance/subprojects/*.md doesn't document a subproject yet — a real
+# gap, not an oversight here.
+#
+# description overrides the repo's GitHub description field.
+# fix-repo-settings.sh pushes it via PATCH /repos/{owner}/{repo} whenever
+# it differs from what's actually set; check-repo-settings.sh flags drift
+# the same way it does for GitHub Pages config. Omit the field entirely to
+# leave a repo's description alone (untouched, not blanked) — every value
+# below was seeded from each repo's actual current description, so
+# deploying this file for the first time changes nothing until you
+# actually edit one.
 #
 # Fields:
-#   name:       repo name, must match an entry in managed-repos.yaml
-#   class:      A | B | C | n/a (org-control repos)
-#   subproject: core-projects | supply-chain | community-ecosystem |
-#               extensibility | org-control | unclassified
-#   reason:     why this class, when it's not obvious from the repo's own
-#               description alone
+#   name:        repo name, must match an entry in managed-repos.yaml
+#   class:       A | B | C | n/a (org-control repos)
+#   subproject:  core-projects | supply-chain | community-ecosystem |
+#                extensibility | org-control | unclassified
+#   reason:      why this class, when it's not obvious from the repo's own
+#                description alone
+#   description: desired GitHub repo description; omit to leave untouched
 
 repositories:
   # --- org-control: outside this scheme entirely ---------------------------
   - name: .github
     class: n/a
     subproject: org-control
+    description: ""
   - name: .project
     class: n/a
     subproject: org-control
+    description: "Project metadata for CloudNativePG - CNCF .project automation"
   - name: governance
     class: n/a
     subproject: org-control
+    description: "CloudNativePG governance policies"
   - name: cnpg-infra
     class: n/a
     subproject: org-control
+    description: "Local-first admin tooling for managing github.com/cloudnative-pg org settings, teams, and CODEOWNERS — run from an admin's laptop, never from CI"
+  - name: cnpg-template
+    class: n/a
+    subproject: org-control
+    reason: "The template every new org repo forks from — org tooling, not a subproject deliverable. NOTE: governance/subprojects/supply-chain.md still lists this under Supply Chain; this is a known discrepancy to reconcile there, not something this file resolves on its own."
+    description: "Default repository template for CloudNativePG projects"
 
-  # --- class A: critical ------------------------------------------------------
+  # --- class A: critical (customer-facing runtime/deploy surface) ------------
   - name: cloudnative-pg
     class: A
     subproject: core-projects
     reason: "The operator itself — the most important repo in the org."
-  - name: api
-    class: A
-    subproject: core-projects
-    reason: "The operator's own API types, split out for Go module reasons — a bug here breaks the operator's core contract."
-  - name: machinery
-    class: A
-    subproject: core-projects
-    reason: "Shared internal library consumed directly by the operator."
-  - name: barman-cloud
-    class: A
-    subproject: core-projects
-    reason: "Backup/restore library — correctness bugs here risk data loss, not just downtime."
+    description: "CloudNativePG is a comprehensive platform designed to seamlessly manage PostgreSQL databases within Kubernetes environments, covering the entire operational lifecycle from initial deployment to ongoing maintenance"
   - name: charts
     class: A
     subproject: supply-chain
-    reason: "How the operator and clusters actually get deployed — a broken chart breaks every production rollout that uses it."
+    reason: "How the operator and clusters actually get deployed — the literal command every user runs to install/upgrade, as directly customer-facing as the operator itself."
+    description: "CloudNativePG Helm Charts"
   - name: postgres-containers
     class: A
     subproject: supply-chain
     reason: "The PostgreSQL operand image running in every user's database pods."
+    description: "Operand images for CloudNativePG containing all community supported version PostgreSQL"
   - name: postgres-extensions-containers
     class: A
     subproject: supply-chain
     reason: "Extension images loaded directly into production databases."
+    description: "Container images for community PostgreSQL extensions to be used as pluggable image volumes with CloudNativePG"
   - name: pgbouncer-containers
     class: A
     subproject: supply-chain
     reason: "Connection pooling image used in production."
-  - name: postgis-containers
-    class: A
-    subproject: supply-chain
-    reason: "PostGIS-bundled production operand image."
+    description: "Operand images for CloudNativePG containing PgBouncer"
   - name: artifacts
     class: A
     subproject: supply-chain
-    reason: "Generated manifests/checksums/catalogs are load-bearing for supply-chain trust, even though the content itself is bot-published (see repo-policy.yaml's automated category, which also applies here)."
-  - name: cnpg-i
-    class: A
-    subproject: extensibility
-    reason: "The CNPG-I interface spec itself — a breaking change here breaks every plugin that implements it."
-  - name: plugin-barman-cloud
-    class: A
-    subproject: extensibility
-    reason: "The reference backup/restore plugin — same data-safety stakes as barman-cloud itself."
-  - name: klio
-    class: A
-    subproject: extensibility
-    reason: "A backup and recovery solution compliant with CNPG-I — same data-safety stakes as plugin-barman-cloud."
+    reason: "Generated YAML manifests are a direct deployment path for many users, not just an input to other tooling — at least as customer-facing as charts, per Gabriele. Also category: automated in repo-policy.yaml."
+    description: "repo to store artifacts generated like in cloudnative-pg"
 
   # --- class B: important -----------------------------------------------------
+  - name: api
+    class: B
+    subproject: core-projects
+    reason: "The operator's own API types, split out for Go module reasons — a bug here breaks the operator's core contract, but this repo isn't itself customer-facing runtime."
+    description: "CloudNativePG API"
+  - name: machinery
+    class: B
+    subproject: core-projects
+    reason: "Shared internal library consumed directly by the operator."
+    description: "Common library extracted from CloudNativePG and containing functions and types shared by multiple projects"
+  - name: barman-cloud
+    class: B
+    subproject: core-projects
+    reason: "Backup/restore library — correctness bugs here risk data loss, but it's a library the operator depends on, not itself the customer-facing surface."
+    description: "Barman Cloud Library for CloudNativePG"
+  - name: cnpg-i
+    class: B
+    subproject: extensibility
+    reason: "The CNPG-I interface spec itself — a breaking change here breaks every plugin that implements it, but it isn't itself deployed to a customer's cluster."
+    description: "CloudNativePG Interface (CNPG-I)"
+  - name: plugin-barman-cloud
+    class: B
+    subproject: extensibility
+    reason: "The reference backup/restore plugin — same data-safety stakes as barman-cloud, same reasoning for class B over A."
+    description: "Barman Cloud CNPG-I backup plugin"
+  - name: klio
+    class: B
+    subproject: extensibility
+    reason: "A backup and recovery solution compliant with CNPG-I — same data-safety stakes as plugin-barman-cloud, same reasoning for class B over A."
+    description: "Multi-Tiered Backup and Recovery Plugin for CloudNativePG"
+  - name: postgis-containers
+    class: B
+    subproject: supply-chain
+    reason: "Per Gabriele — the way forward is PostGIS as a pluggable extension via postgres-extensions-containers, not this standalone bundled image, so it's moved off the critical customer-facing path."
+    description: "Operand images for CloudNativePG containing PostgreSQL with PostGIS"
   - name: daggerverse
     class: B
     subproject: supply-chain
     reason: "CI/CD infrastructure other repos' pipelines depend on."
-  - name: chaos-testing
-    class: B
-    subproject: supply-chain
-    reason: "Resilience-testing infra — valuable signal, but not itself production runtime code."
+    description: "Dagger modules for the CloudNativePG project"
   - name: docs
     class: B
     subproject: community-ecosystem
     reason: "Public-facing documentation; already category: automated in repo-policy.yaml."
+    description: "CloudNativePG operator documentation project"
   - name: cloudnative-pg.github.io
     class: B
     subproject: community-ecosystem
     reason: "The public project website."
+    description: "CloudNativePG website"
   - name: grafana-dashboards
     class: B
     subproject: community-ecosystem
     reason: "Dashboards used to monitor production CNPG clusters, though not runtime code themselves."
+    description: "Grafana Dashboards for CloudNativePG"
   - name: cnpg-i-machinery
     class: B
     subproject: extensibility
     reason: "Shared Go code for CNPG-I plugins — a library, not the spec itself."
-  - name: postgres-keycloak-oauth-validator
-    class: B
-    subproject: extensibility
-    reason: "A real Postgres module used in production by whoever adopts it, though niche/optional."
+    description: "CloudNativePG Interface Machinery"
 
   # --- class C: low-stakes ------------------------------------------------
   - name: postgres-trunk-containers
     class: C
     subproject: supply-chain
     reason: "Explicitly for early testing against PostgreSQL's development branch — not something anyone runs in production, unlike the other container-image repos."
-  - name: cnpg-template
-    class: C
-    subproject: supply-chain
-    reason: "A template for new repos, not a running component."
+    description: "A scheduled pipeline that runs CloudNativePG E2E tests using the latest main of PostgreSQL"
   - name: ciclops
     class: C
     subproject: supply-chain
     reason: "CI reporting tool."
+    description: "ciclops (CI-clops) is a GitHub Action that summarizes the result of a Test Suite executed in a series of \"strategy matrix\" branches, and helps orient investigations when tests fail."
   - name: github-test
     class: C
     subproject: supply-chain
     reason: "Literal playground for testing GitHub Actions."
+    description: "Repository to test GitHub features"
   - name: cnpg-playground
     class: C
     subproject: community-ecosystem
     reason: "For learning purposes only, explicitly must not be used in production (see its own CLAUDE.md)."
+    description: "Local Learning Environment for CloudNativePG Using Docker and Kind"
   - name: webtest
     class: C
     subproject: community-ecosystem
     reason: "Internal testing tooling for the website, not the website itself."
+    description: "A simple PostgreSQL stress tool"
   - name: cnpg-i-hello-world
     class: C
     subproject: extensibility
     reason: "Explicitly a template/example plugin."
+    description: ""
   - name: artwork
     class: C
     subproject: unclassified
     reason: "Logos/brand assets — no runtime impact. Also not yet reflected in any governance/subprojects/*.md listing (see top-level CLAUDE.md's note on this gap)."
+    description: "Artwork related to CloudNativePG"
+  - name: chaos-testing
+    class: C
+    subproject: supply-chain
+    reason: "Per Gabriele — moved from class B."
+    description: "Chaos testing project to enhance CloudnativePG's resilience and fault tolerance"
+  - name: postgres-keycloak-oauth-validator
+    class: C
+    subproject: extensibility
+    reason: "Experimental — per Gabriele, moved from class B."
+    description: "PostgreSQL OAuth Validator for Keycloak"

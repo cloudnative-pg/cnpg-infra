@@ -57,6 +57,12 @@
 #     (squash_merge_commit_title=PR_TITLE, squash_merge_commit_message=PR_BODY),
 #     so a squashed commit reads the same as the PR it came from rather than
 #     a pile of intermediate commit messages.
+#   - GitHub description: pushed from repo-tiers.yaml's `description` field
+#     whenever that field is present and differs from the repo's actual
+#     description. A repo with no `description` field in repo-tiers.yaml is
+#     left completely alone (not blanked) — this is an opt-in override, the
+#     only field in any policy file here that can *change* something a repo
+#     already has rather than just floor it.
 #   - Does NOT touch teams, collaborators, or repo visibility — those are
 #     governance/roster decisions (see governance/CLAUDE.md), not settings
 #     a script should change unilaterally.
@@ -117,6 +123,23 @@ policy_tier() { # $1 = repo name -> prints class (A/B/C), or "C" if unlisted/n/a
 entry_exists() { # $1 = file, $2 = repo name -> exit 0 if that file has a "- name: <repo>" entry
   [ -f "$1" ] || return 1
   grep -q "^  - name: $2\$" "$1"
+}
+
+policy_has_description() { # $1 = repo name -> exit 0 if repo-tiers.yaml sets a description for it at all
+  [ -f "$TIERS" ] || return 1
+  awk -v want="$1" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && /^    description:/ { found=1; exit }
+    END { exit !found }
+  ' "$TIERS"
+}
+
+policy_description() { # $1 = repo name -> prints desired description (may be empty string)
+  [ -f "$TIERS" ] || return
+  awk -v want="$1" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && /^    description:/ { sub(/^    description: /, ""); gsub(/^"|"$/, ""); print; exit }
+  ' "$TIERS"
 }
 
 tier_review_floor() { # $1 = class -> prints the review-count floor that class implies
@@ -225,6 +248,14 @@ old_update_branch="$(echo "$repo_json" | jq -r '.allow_update_branch | if . == n
 old_delete_on_merge="$(echo "$repo_json" | jq -r '.delete_branch_on_merge | if . == null then false else . end')"
 old_squash_title="$(echo "$repo_json" | jq -r '.squash_merge_commit_title // "unknown"')"
 old_squash_message="$(echo "$repo_json" | jq -r '.squash_merge_commit_message // "unknown"')"
+old_description="$(echo "$repo_json" | jq -r '.description // ""')"
+has_description_override=false
+if policy_has_description "$repo"; then
+  has_description_override=true
+  new_description="$(policy_description "$repo")"
+else
+  new_description="$old_description"
+fi
 
 if ! entry_exists "$TIERS" "$repo"; then
   echo "⚠️  '$repo' has no entry in repo-tiers.yaml — defaulting to class C until it's classified." >&2
@@ -332,6 +363,7 @@ diff_line "suggest updating PR branches"      "$old_update_branch" "true"
 diff_line "delete head branches on merge"     "$old_delete_on_merge" "true"
 diff_line "squash commit title"               "$old_squash_title"   "PR_TITLE"
 diff_line "squash commit message"             "$old_squash_message" "PR_BODY"
+[ "$has_description_override" = "true" ] && diff_line "description (repo-tiers.yaml)" "$old_description" "$new_description"
 
 if [ "$changed" = "false" ]; then
   echo "  (nothing to do — already at or above baseline)"
@@ -392,6 +424,12 @@ if [ "$old_squash" != "true" ] || [ "$old_rebase" != "true" ] || \
     -F "squash_merge_commit_message=PR_BODY" >/dev/null \
     && echo "  ✓ merge/branch settings updated (squash, rebase, suggest-update, delete-on-merge, squash message = PR title+body)" \
     || echo "  ✗ failed to update merge/branch settings"
+fi
+
+if [ "$has_description_override" = "true" ] && [ "$old_description" != "$new_description" ]; then
+  gh api -X PATCH "repos/$full" -f "description=$new_description" >/dev/null \
+    && echo "  ✓ description updated from repo-tiers.yaml" \
+    || echo "  ✗ failed to update description"
 fi
 
 echo

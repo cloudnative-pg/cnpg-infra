@@ -65,6 +65,15 @@ tier_field() { # $1 = repo name, $2 = field name (class/subproject/reason) -> pr
   ' "$TIERS"
 }
 
+tier_has_field() { # $1 = repo name, $2 = field name -> exit 0 if repo-tiers.yaml sets that field at all
+  [ -f "$TIERS" ] || return 1
+  awk -v want="$1" -v field="$2:" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && index($0, "    " field)==1 { found=1; exit }
+    END { exit !found }
+  ' "$TIERS"
+}
+
 entry_exists() { # $1 = file, $2 = repo name -> exit 0 if that file has a "- name: <repo>" entry
   [ -f "$1" ] || return 1
   grep -q "^  - name: $2\$" "$1"
@@ -184,6 +193,14 @@ for repo in "${REPOS[@]}"; do
   fi
 
   visibility="$(echo "$repo_json" | jq -r '.visibility // "unknown"')"
+  actual_description="$(echo "$repo_json" | jq -r '.description // ""')"
+  description_expected=false
+  description_drift=false
+  if tier_has_field "$repo" description; then
+    description_expected=true
+    expected_description="$(tier_field "$repo" description)"
+    [ "$actual_description" != "$expected_description" ] && description_drift=true
+  fi
   default_branch="$(echo "$repo_json" | jq -r '.default_branch // "main"')"
   # NOTE: deliberately not using jq's `//` for booleans below — it treats a
   # real `false` the same as `null`/missing, so e.g. `.enabled // true`
@@ -337,6 +354,7 @@ for repo in "${REPOS[@]}"; do
     echo
     echo "<https://github.com/$full> — visibility: \`$visibility\`, default branch: \`$default_branch\`$( [ "$has_admin" != "true" ] && echo " — ⚠️ auditing token lacks admin access here, security_and_analysis fields may be incomplete" )"
     echo "Class: \`$repo_class\` · Subproject: \`${repo_subproject:-unclassified}\` (see [\`repo-tiers.yaml\`](repo-tiers.yaml))"
+    echo "Description: \"$actual_description\"$([ "$description_expected" = "true" ] && [ "$description_drift" = "true" ] && echo " — ⚠️ repo-tiers.yaml expects: \"$expected_description\"")"
     if [ "$category" != "standard" ]; then
       echo
       echo "> 🤖 **Category: $category** (see [\`repo-policy.yaml\`](repo-policy.yaml)) — $reason"

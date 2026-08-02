@@ -61,7 +61,7 @@ half-completed run before that happens.
 | File | Scope |
 |---|---|
 | `repo-policy.yaml` | Per-repo exceptions to the settings baseline (e.g. a repo whose content is machine-published and so doesn't need a PR-review gate; a standalone review-count override for a repo not yet in `repo-tiers.yaml`) |
-| `repo-tiers.yaml` | Every managed repo's importance class (A = critical, B = important, C = low-stakes) and governance subproject. Class drives the settings floor: A gets 2 required reviews + code-owner review forced on, B gets 1 + code-owner review forced on, C gets the org default (1, untouched code-owner-review setting) |
+| `repo-tiers.yaml` | Every managed repo's importance class (A = critical, B = important, C = low-stakes), governance subproject, and (optionally) a desired GitHub description. Class drives the settings floor: A gets 2 required reviews + code-owner review forced on, B gets 1 + code-owner review forced on, C gets the org default (1, untouched code-owner-review setting). A repo's `description` field, if set, is pushed to GitHub whenever it drifts — the only field in any policy file here that changes something a repo already has rather than just flooring it |
 | `componentowners-policy.yaml` | Per-repo CODEOWNERS content — both the catch-all `*` rule and any path-scoped rules, each as teams + users |
 | `org-policy.yaml` | Rules that apply identically to every repo (e.g. which teams get `admin` everywhere), so they don't need repeating per-repo |
 
@@ -74,6 +74,7 @@ half-completed run before that happens.
 | `scripts/update-teams.sh` | Rebuilds `generated/teams.yaml` from live GitHub state |
 | `scripts/check-repo-settings.sh [repo]` | Read-only audit of repo settings (branch protection, teams, collaborators, security features) against the policy files and the GitHub-API-checkable subset of the [OSPS Baseline checklist](https://baseline.openssf.org/versions/2026-02-19-checklist.md) → `repo-settings-report.md` |
 | `scripts/fix-repo-settings.sh <repo> [--apply]` | Remediates one repo against the policy files. **Defaults to dry-run** — always review the diff before re-running with `--apply`. Only ever raises settings, never lowers an existing stricter one |
+| `scripts/fix-all-repos.sh [--apply]` | Runs `fix-repo-settings.sh` across every repo in `managed-repos.yaml`, one at a time, with a summary at the end. Same dry-run-by-default safety model — nothing here is new logic, just a loop |
 
 ## Adding a new repo
 

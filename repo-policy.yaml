@@ -87,11 +87,14 @@ repositories:
     pages_build_type: workflow
     pages_branch: main
     pages_path: /
+  - name: api
+    category: automated
+    reason: "Per Gabriele: repo content is machine-published, not authored PR-by-PR here. Likely synced from cloudnative-pg/cloudnative-pg's own api/v1/ (the types are \"split out for Go module reasons\" per that repo's CLAUDE.md) but the exact sync mechanism/upstream isn't confirmed — update this once it is."
   - name: artifacts
     category: automated
     reason: "Generated manifests/checksums/catalogs are published by automation, not authored PR-by-PR; see repo-tiers.yaml for why this repo is nonetheless class A."
   - name: plugin-barman-cloud
-    reason: "Pages config only — review requirements now come from repo-tiers.yaml's class A instead of a standalone override here."
+    reason: "Pages config only — review requirements now come from repo-tiers.yaml's class instead of a standalone override here."
     pages_enabled: true
     pages_build_type: workflow
     pages_branch: main
