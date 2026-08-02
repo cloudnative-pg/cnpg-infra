@@ -64,8 +64,8 @@ repositories:
   - name: artifacts
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
+        teams: [artifacts-owners, maintainers]
+        users: []
   - name: artwork
     rules:
       - path: "*"
@@ -81,21 +81,21 @@ repositories:
   - name: chaos-testing
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [gbartolini, mnencia, fcanovai, XploY04]
+        teams: [chaos-testing-owners, maintainers]
+        users: []
   - name: charts
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [fcanovai, gbartolini, leonardoce, mnencia, itay-grudev]
+        teams: [charts-owners, maintainers]
+        users: []
       - path: "/charts/cluster/"
         teams: []
         users: [itay-grudev, phisco]
   - name: ciclops
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [jsilvela, NiccoloFei]
+        teams: [ciclops-owners, maintainers]
+        users: []
   - name: cloudnative-pg
     rules:
       - path: "*"
@@ -115,23 +115,23 @@ repositories:
   - name: cloudnative-pg.github.io
     rules:
       - path: "*"
-        teams: [maintainers, web]
-        users: [gbartolini, jsilvela, FloorD, mnencia, leonardoce]
+        teams: [cloudnative-pg-github-io-owners, maintainers, web]
+        users: []
   - name: cnpg-i
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, armru]
+        teams: [cnpg-i-owners, maintainers]
+        users: []
   - name: cnpg-i-hello-world
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, armru]
+        teams: [cnpg-i-hello-world-owners, maintainers]
+        users: []
   - name: cnpg-i-machinery
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, armru]
+        teams: [cnpg-i-machinery-owners, maintainers]
+        users: []
   - name: cnpg-infra
     rules:
       - path: "*"
@@ -141,8 +141,8 @@ repositories:
   - name: cnpg-playground
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, ardentperf]
+        teams: [cnpg-playground-owners, maintainers]
+        users: []
   - name: cnpg-template
     rules:
       - path: "*"
@@ -152,13 +152,13 @@ repositories:
   - name: daggerverse
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, NiccoloFei, jbattiato]
+        teams: [daggerverse-owners, maintainers]
+        users: []
   - name: docs
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, SaxenaAnushka102]
+        teams: [docs-owners, maintainers]
+        users: []
   - name: github-test
     rules:
       - path: "*"
@@ -174,13 +174,13 @@ repositories:
   - name: grafana-dashboards
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [itay-grudev, phisco]
+        teams: [grafana-dashboards-owners, maintainers]
+        users: []
   - name: klio
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [gabriele-wolfox, jbattiato, NiccoloFei, GabriFedi97, jlong49]
+        teams: [klio-owners, maintainers]
+        users: []
         note: "Newly added repo, not yet reflected in any governance/subprojects/*.md listing — no owner documented anywhere yet. Worth a routine editorial addition to the relevant subprojects file (see subprojects/README.md — no vote needed for that)."
   - name: machinery
     rules:
@@ -191,28 +191,28 @@ repositories:
   - name: pgbouncer-containers
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [gbartolini, mnencia, leonardoce, NiccoloFei, litaocdl]
+        teams: [pgbouncer-containers-owners, maintainers]
+        users: []
   - name: plugin-barman-cloud
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
+        teams: [plugin-barman-cloud-owners, maintainers]
+        users: []
   - name: postgis-containers
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [gbartolini, mnencia, leonardoce, fcanovai, NiccoloFei, litaocdl]
+        teams: [postgis-containers-owners, maintainers]
+        users: []
   - name: postgres-containers
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [gbartolini, mnencia, fcanovai, NiccoloFei, litaocdl]
+        teams: [postgres-containers-owners, maintainers]
+        users: []
   - name: postgres-extensions-containers
     rules:
       - path: "*"
-        teams: [maintainers, extensions-maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
+        teams: [postgres-extensions-containers-owners, maintainers, extensions-maintainers]
+        users: []
         note: "Real current CODEOWNERS lists @GabriFedi97 by name instead of via extensions-maintainers team membership — see this file's header for why the team reference is preferred going forward."
       - path: "/timescaledb-oss/"
         teams: [extensions-maintainers]
@@ -226,15 +226,15 @@ repositories:
   - name: postgres-keycloak-oauth-validator
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, armru, y-tabata]
+        teams: [postgres-keycloak-oauth-validator-owners, maintainers]
+        users: []
   - name: postgres-trunk-containers
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [NiccoloFei, fcanovai, gbartolini, jbattiato, litaocdl, mnencia]
+        teams: [postgres-trunk-containers-owners, maintainers]
+        users: []
   - name: webtest
     rules:
       - path: "*"
-        teams: [maintainers]
-        users: [leonardoce, mnencia, gbartolini, fcanovai, armru]
+        teams: [webtest-owners, maintainers]
+        users: []
