@@ -180,7 +180,7 @@ repositories:
     rules:
       - path: "*"
         teams: [maintainers]
-        users: []
+        users: [gabriele-wolfox, jbattiato, NiccoloFei, GabriFedi97, jlong49]
         note: "Newly added repo, not yet reflected in any governance/subprojects/*.md listing — no owner documented anywhere yet. Worth a routine editorial addition to the relevant subprojects file (see subprojects/README.md — no vote needed for that)."
   - name: machinery
     rules:
