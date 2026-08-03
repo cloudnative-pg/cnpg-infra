@@ -372,10 +372,25 @@ fi
 
 # --- repo-policy.yaml's ruleset_bypass_teams: add any missing team, never
 #     remove an existing bypass actor (whatever put it there) -------------
+# NOTE: the "admins" team specifically cannot be used as a Team bypass
+# actor — the ruleset API rejects it ("Actor admins team must be part of
+# the ruleset source or owner organization") because it is a secret-
+# privacy team (see teams.yaml). Used the OrganizationAdmin bypass type
+# instead there, which needs no team id at all and covers org
+# admins/owners generically — verified current_user_can_bypass: "always"
+# for an org owner once this was in place.
 new_bypass_actors_json="$old_bypass_actors_json"
 bypass_teams_added=()
 while read -r bt; do
   [ -z "$bt" ] && continue
+  if [ "$bt" = "admins" ]; then
+    already="$(echo "$new_bypass_actors_json" | jq 'any(.[]; .actor_type == "OrganizationAdmin")')"
+    if [ "$already" != "true" ]; then
+      new_bypass_actors_json="$(echo "$new_bypass_actors_json" | jq '. + [{actor_id: null, actor_type: "OrganizationAdmin", bypass_mode: "always"}]')"
+      bypass_teams_added+=("$bt")
+    fi
+    continue
+  fi
   bt_id="$(team_id_for "$bt")"
   if [ -z "$bt_id" ]; then
     echo "  ⚠️  could not resolve team '$bt' (ruleset_bypass_teams) — skipping" >&2

@@ -105,6 +105,9 @@ repositories:
     pages_build_type: workflow
     pages_branch: main
     pages_path: /
+  - name: cnpg-infra
+    reason: "Per Gabriele: this project is experimental — push directly to main, no PRs, until told otherwise. The main ruleset still blocks force-push/deletion and requires linear history, but admins bypasses the PR-review requirement entirely so direct pushes keep working."
+    ruleset_bypass_teams: [admins]
   - name: api
     category: automated
     reason: "Per Gabriele: repo content is machine-published, not authored PR-by-PR here — synced from cloudnative-pg/cloudnative-pg's own api/v1/ (the types are \"split out for Go module reasons\" per that repo's CLAUDE.md)."
