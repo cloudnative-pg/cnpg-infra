@@ -63,9 +63,15 @@
 #     left completely alone (not blanked) — this is an opt-in override, the
 #     only field in any policy file here that can *change* something a repo
 #     already has rather than just floor it.
-#   - Does NOT touch teams, collaborators, or repo visibility — those are
-#     governance/roster decisions (see governance/CLAUDE.md), not settings
-#     a script should change unilaterally.
+#   - Team repo access: only org-policy.yaml's global_admin_teams and
+#     global_maintain_teams are enforced here — each listed team is raised
+#     to at least that permission on every managed repo if it's currently
+#     lower (or has none at all), never downgraded if it's already
+#     stricter. This is a repo permission grant, not a CODEOWNERS entry —
+#     it doesn't make the team a required reviewer. Any other team's
+#     access (a repo's own <repo>-owners team, direct collaborators) is
+#     untouched here — that's sync-project-owner-teams.sh's job, or a
+#     governance/roster decision (see governance/CLAUDE.md).
 #   - Does NOT touch "require signed commits" — GitHub accepts GPG, SSH, or
 #     S/MIME signatures for this, and turning it on can break contributors
 #     who haven't set up commit signing, so it's left as an explicit opt-in
@@ -86,6 +92,7 @@ INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$INFRA_ROOT/generated/managed-repos.yaml"
 POLICY="$INFRA_ROOT/repo-policy.yaml"
 TIERS="$INFRA_ROOT/repo-tiers.yaml"
+ORGPOLICY="$INFRA_ROOT/org-policy.yaml"
 # The ruleset this script manages is named after the branch it protects
 # (e.g. "main"), matching GitHub's own convention (see cloudnative-pg/docs'
 # hand-authored ruleset, also named "main") — set once default_branch is known.
@@ -154,6 +161,33 @@ tier_forces_code_owner_review() { # $1 = class -> prints true/false
     A|B) echo true ;;
     *) echo false ;;
   esac
+}
+
+policy_global_teams() { # $1 = "global_admin_teams" | "global_maintain_teams" -> one team slug per line
+  [ -f "$ORGPOLICY" ] || return
+  awk -v key="$1:" '
+    $0 == key { in_block=1; next }
+    in_block && /^[^ ]/ { in_block=0 }
+    in_block && /^  - / { sub(/^  - */, ""); print }
+  ' "$ORGPOLICY"
+}
+
+permission_rank() { # $1 = permission name -> integer rank, higher = stricter
+  case "$1" in
+    admin) echo 5 ;;
+    maintain) echo 4 ;;
+    write|push) echo 3 ;;
+    triage) echo 2 ;;
+    read) echo 1 ;;
+    *) echo 0 ;; # none / unrecognized
+  esac
+}
+
+team_repo_permission() { # $1 = team slug, $2 = org/repo -> prints role_name, or "none"
+  local resp
+  resp="$(gh api -H "Accept: application/vnd.github.v3.repository+json" "orgs/${ORG}/teams/${1}/repos/${2}" 2>/dev/null)"
+  [ $? -eq 0 ] || { echo "none"; return; }
+  echo "$resp" | jq -r '.role_name // "none"'
 }
 
 repo="${1:-}"
@@ -284,6 +318,19 @@ else
   fi
 fi
 
+# --- global_admin_teams / global_maintain_teams floors from org-policy.yaml
+global_team_diffs=() # each entry: "team|desired_permission|current_permission"
+while read -r t; do
+  [ -z "$t" ] && continue
+  cur="$(team_repo_permission "$t" "$full")"
+  [ "$(permission_rank "$cur")" -lt "$(permission_rank admin)" ] && global_team_diffs+=("$t|admin|$cur")
+done < <(policy_global_teams global_admin_teams)
+while read -r t; do
+  [ -z "$t" ] && continue
+  cur="$(team_repo_permission "$t" "$full")"
+  [ "$(permission_rank "$cur")" -lt "$(permission_rank maintain)" ] && global_team_diffs+=("$t|maintain|$cur")
+done < <(policy_global_teams global_maintain_teams)
+
 # --- find our own managed ruleset, if one already exists on this repo -----
 existing_ruleset_id="$(gh api "repos/$full/rulesets" 2>/dev/null | jq -r --arg name "$RULESET_NAME" '.[] | select(.name==$name) | .id' | head -1)"
 
@@ -364,6 +411,11 @@ diff_line "delete head branches on merge"     "$old_delete_on_merge" "true"
 diff_line "squash commit title"               "$old_squash_title"   "PR_TITLE"
 diff_line "squash commit message"             "$old_squash_message" "PR_BODY"
 [ "$has_description_override" = "true" ] && diff_line "description (repo-tiers.yaml)" "$old_description" "$new_description"
+for entry in "${global_team_diffs[@]:-}"; do
+  [ -z "$entry" ] && continue
+  IFS='|' read -r gt_team gt_desired gt_current <<< "$entry"
+  diff_line "team '$gt_team' permission (org-policy.yaml)" "$gt_current" "$gt_desired"
+done
 
 if [ "$changed" = "false" ]; then
   echo "  (nothing to do — already at or above baseline)"
@@ -373,7 +425,8 @@ fi
 echo
 echo "Untouched by this script (preserved as-is): required status check names,"
 echo "admin enforcement, allow-merge-commit, signed-commit requirement, any"
-echo "other ruleset on the repo, teams, collaborators, visibility."
+echo "other ruleset on the repo, visibility, collaborators, and any team's"
+echo "access other than org-policy.yaml's global_admin_teams/global_maintain_teams."
 echo
 
 if [ "$apply" != "true" ]; then
@@ -431,6 +484,14 @@ if [ "$has_description_override" = "true" ] && [ "$old_description" != "$new_des
     && echo "  ✓ description updated from repo-tiers.yaml" \
     || echo "  ✗ failed to update description"
 fi
+
+for entry in "${global_team_diffs[@]:-}"; do
+  [ -z "$entry" ] && continue
+  IFS='|' read -r gt_team gt_desired gt_current <<< "$entry"
+  gh api -X PUT "orgs/${ORG}/teams/${gt_team}/repos/${full}" -f "permission=${gt_desired}" >/dev/null \
+    && echo "  ✓ team '$gt_team' granted '$gt_desired' (was '$gt_current')" \
+    || echo "  ✗ failed to grant '$gt_team' '$gt_desired' on $full"
+done
 
 echo
 echo "Done. Re-run ./check-repo-settings.sh $repo to verify."

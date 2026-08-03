@@ -9,24 +9,33 @@
 # needs a repo-specific reason, it belongs in repo-policy.yaml or
 # codeowners-policy.yaml instead, not here.
 #
-# global_admin_teams
-#   Teams that should have `admin` permission on every managed repo,
-#   without needing to be listed in that repo's own CODEOWNERS or
-#   repo-policy.yaml entry. fix-repo-settings.sh (in a later step) will use
-#   this list to grant/verify admin access org-wide — a repo's own config
-#   files never need to mention these teams at all.
+# global_admin_teams / global_maintain_teams
+#   Teams that should have at least `admin` (or at least `maintain`)
+#   permission on every managed repo, without needing to be listed in
+#   that repo's own CODEOWNERS or repo-policy.yaml entry.
+#   fix-repo-settings.sh grants/verifies this org-wide — a repo's own
+#   config files never need to mention these teams at all.
 #
-#   Note: per teams.yaml's last snapshot, `admins` already has `admin` on
-#   most repos but not all — e.g. it only has `read` on webtest. That kind
-#   of drift is exactly what this global policy is meant to catch and fix
-#   once wired into fix-repo-settings.sh, rather than relying on someone
-#   noticing a repo where the admin grant was never made.
+#   Deliberately a repo permission grant, not a CODEOWNERS entry: these
+#   teams aren't meant to gate PR review/approval (that's what a repo's
+#   own componentowners-policy.yaml rules and repo-tiers.yaml `owners`
+#   are for) — they need operational access to the repo itself, e.g.
+#   `bots` (the cnpg-bot automation account) pushing tags or publishing
+#   releases.
+#
+#   Enforcement only ever raises: if a team already holds a stricter
+#   permission than the one listed here for a given repo (e.g. `bots`
+#   already has `admin` on a few container-image repos, ahead of the
+#   `maintain` floor below), that grant is left alone, never downgraded.
 #
 # Adding or removing a team here is an operational call, same as
 # repo-policy.yaml entries — not a governance decision requiring a vote
-# (see governance/CLAUDE.md) — but changing who has org-wide admin on
-# every repo is high-impact, so treat this file's edits with more care
-# than a routine repo-policy.yaml addition.
+# (see governance/CLAUDE.md) — but changing who has org-wide admin or
+# maintain access on every repo is high-impact, so treat this file's
+# edits with more care than a routine repo-policy.yaml addition.
 
 global_admin_teams:
   - admins
+
+global_maintain_teams:
+  - bots
