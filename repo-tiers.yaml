@@ -142,7 +142,7 @@ repositories:
     subproject: supply-chain
     reason: "Extension images loaded directly into production databases."
     description: "Container images for community PostgreSQL extensions to be used as pluggable image volumes with CloudNativePG"
-    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei, GabriFedi97]
   - name: pgbouncer-containers
     class: A
     subproject: supply-chain
