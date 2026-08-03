@@ -47,6 +47,12 @@
 #     plain boolean floor, forced unconditionally, including for
 #     "automated" repos.
 #   - Dependabot vulnerability alerts + security updates: turned on if off.
+#   - Release immutability: turned on for every repo by default (published
+#     releases and their tags can no longer be deleted or modified by
+#     anyone, including admins) — never turned off if already on. A repo
+#     can opt out via repo-policy.yaml's `immutable_releases: false`; there
+#     is no per-team bypass, GitHub's own API for this setting is a plain
+#     per-repo on/off toggle with no bypass_actors-style exception.
 #   - Secret scanning + push protection: turned on if off.
 #   - Repo-level merge/branch settings, forced to true if not already:
 #     squash merging, rebase merging, "always suggest updating PR branches",
@@ -106,6 +112,15 @@ ORGPOLICY="$INFRA_ROOT/org-policy.yaml"
 
 command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1; }
 command -v jq >/dev/null 2>&1 || { echo "error: jq is required" >&2; exit 1; }
+
+policy_immutable_releases_opt_out() { # $1 = repo name -> exit 0 if repo-policy.yaml sets immutable_releases: false
+  [ -f "$POLICY" ] || return 1
+  awk -v want="$1" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && /^    immutable_releases: false/ { found=1; exit }
+    END { exit !found }
+  ' "$POLICY"
+}
 
 policy_category() { # $1 = repo name -> prints category, or "standard" if unlisted
   [ -f "$POLICY" ] || { echo "standard"; return; }
@@ -271,6 +286,13 @@ push_protection="$(echo "$repo_json" | jq -r '.security_and_analysis.secret_scan
 dependabot_sec="$(echo "$repo_json" | jq -r '.security_and_analysis.dependabot_security_updates.status // "unknown"')"
 vuln_status_code="$(gh api -i "repos/$full/vulnerability-alerts" 2>/dev/null | head -1 | awk '{print $2}')"
 vuln_enabled="$([ "$vuln_status_code" = "204" ] && echo true || echo false)"
+
+old_immutable_releases="$(gh api "repos/$full/immutable-releases" 2>/dev/null | jq -r '.enabled | if . == null then false else . end')"
+if policy_immutable_releases_opt_out "$repo"; then
+  new_immutable_releases="$old_immutable_releases" # opted out via repo-policy.yaml — leave as-is, never force off if already on
+else
+  new_immutable_releases=true
+fi
 
 category="$(policy_category "$repo")"
 
@@ -481,6 +503,7 @@ diff_line "secret scanning"                   "$secret_scanning"  "enabled"
 diff_line "secret scanning push protection"   "$push_protection"  "enabled"
 diff_line "dependabot security updates"       "$dependabot_sec"   "enabled"
 diff_line "dependabot vulnerability alerts"   "$vuln_enabled"     "true"
+diff_line "release immutability"              "$old_immutable_releases" "$new_immutable_releases"
 diff_line "allow squash merging"              "$old_squash"       "true"
 diff_line "allow rebase merging"              "$old_rebase"       "true"
 diff_line "suggest updating PR branches"      "$old_update_branch" "true"
@@ -548,6 +571,12 @@ if [ "$vuln_enabled" != "true" ]; then
   gh api -X PUT "repos/$full/vulnerability-alerts" \
     && echo "  ✓ vulnerability alerts enabled" \
     || echo "  ✗ failed to enable vulnerability alerts"
+fi
+
+if [ "$new_immutable_releases" = "true" ] && [ "$old_immutable_releases" != "true" ]; then
+  gh api -X PUT "repos/$full/immutable-releases" \
+    && echo "  ✓ release immutability enabled" \
+    || echo "  ✗ failed to enable release immutability"
 fi
 
 if [ "$dependabot_sec" != "enabled" ]; then

@@ -35,6 +35,24 @@
 #   below either. Not currently used by any repo — every repo that needs a
 #   higher floor is already classified in repo-tiers.yaml.
 #
+# immutable_releases (optional, false — the only accepted value)
+#   Opts a repo OUT of release immutability, which fix-repo-settings.sh
+#   otherwise enables by default on every repo (published releases and
+#   their tags become undeletable/unmodifiable by anyone, including
+#   admins — a GitHub setting, not a ruleset). This is the reverse polarity
+#   from every other field here: everything else is opt-in to an
+#   exception, this one is opt-out of a default-on floor, because
+#   immutability is a pure hardening with no real downside for a repo that
+#   publishes releases normally, and a no-op for one that has none. Once
+#   set, fix-repo-settings.sh leaves the repo's actual setting alone
+#   (never forces it back on) rather than fighting a deliberate exception.
+#   Not currently used by any repo — checked every repo's real release
+#   history first and found no rolling/overwritten release pattern
+#   anywhere that would need this. GitHub's API for this setting has no
+#   per-team bypass (unlike ruleset bypass_actors) — it is a plain
+#   per-repo on/off toggle, so this field is the only exception lever
+#   available at all.
+#
 # squash_merge_message (optional, PR_BODY | COMMIT_MESSAGES)
 #   Overrides the org default of PR_BODY for squash_merge_commit_message
 #   (what populates the commit message body when a PR is squash-merged).
@@ -93,6 +111,7 @@
 #   squash_merge_message: PR_BODY (org default, so unused today) |
 #                         COMMIT_MESSAGES
 #   ruleset_bypass_teams: see above
+#   immutable_releases:   see above (only meaningful value is `false`)
 #   pages_*:              see above
 
 repositories:
