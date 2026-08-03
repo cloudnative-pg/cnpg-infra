@@ -181,6 +181,22 @@ repositories:
         teams: [governance-owners, admins]
         users: []
         note: "Steering/CNCF-owned control repo, not part of any subproject — no individual whole-repo owner documented beyond the maintainer committee itself."
+      - path: "/subprojects/core-projects.md"
+        teams: [core-maintainers]
+        users: []
+        note: "Real current CODEOWNERS scopes each subprojects/*.md file to its own subproject committee, per governance/subprojects/README.md and governance's own CLAUDE.md. core-maintainers does not exist as a GitHub team yet (the federated model is drafted, not yet ratified/rolled out) — kept verbatim, matching the real file, not something to invent a team for here."
+      - path: "/subprojects/supply-chain.md"
+        teams: [supply-chain-maintainers]
+        users: []
+        note: "Same as core-projects.md above — supply-chain-maintainers does not exist as a GitHub team yet."
+      - path: "/subprojects/community-ecosystem.md"
+        teams: [community-ecosystem-maintainers]
+        users: []
+        note: "Same as core-projects.md above — community-ecosystem-maintainers does not exist as a GitHub team yet."
+      - path: "/subprojects/extensibility.md"
+        teams: [extensibility-maintainers]
+        users: []
+        note: "Same as core-projects.md above — extensibility-maintainers does not exist as a GitHub team yet."
   - name: grafana-dashboards
     rules:
       - path: "*"
