@@ -44,6 +44,22 @@
 #   one is needed; every repo currently gets the PR_BODY default via
 #   fix-repo-settings.sh regardless of whether it's listed below.
 #
+# ruleset_bypass_teams (optional, list of team slugs)
+#   Teams that should be able to bypass the main-branch ruleset entirely —
+#   push directly to the default branch, and merge PRs with none of the
+#   ruleset's requirements satisfied (no approving reviews, no passing
+#   status checks). fix-repo-settings.sh adds each listed team to the
+#   ruleset's bypass_actors with bypass_mode "always" (not "pull_request",
+#   which would still force changes through a PR, just without needing
+#   review/checks — these repos need actual direct-push automation, e.g. a
+#   release bot bumping versions/tags or publishing generated content).
+#   Only ever adds bypass actors, never removes one that's already there
+#   for some other reason. `bots` is the only team used here today — this
+#   grants it a genuine "no gate at all" exception on top of the plain
+#   `maintain` permission org-policy.yaml's global_maintain_teams already
+#   gives it on every repo, so use it only where direct-push automation
+#   actually runs, not as a substitute for the org-wide grant.
+#
 # pages_* (optional — enabled, build_type, branch, path, cname)
 #   Documents the expected GitHub Pages configuration for a repo that
 #   serves one, so check-repo-settings.sh can flag drift (Pages disabled,
@@ -76,6 +92,7 @@
 #                         higher than the org default of 1
 #   squash_merge_message: PR_BODY (org default, so unused today) |
 #                         COMMIT_MESSAGES
+#   ruleset_bypass_teams: see above
 #   pages_*:              see above
 
 repositories:
@@ -83,6 +100,7 @@ repositories:
     category: automated
     reason: "Publishes documentation content already authored and reviewed in cloudnative-pg/cloudnative-pg (docs/); this repo only auto-publishes it, so a mandatory PR-review gate here would be redundant, not a real second review."
     upstream: cloudnative-pg/cloudnative-pg
+    ruleset_bypass_teams: [bots]
     pages_enabled: true
     pages_build_type: workflow
     pages_branch: main
@@ -91,9 +109,11 @@ repositories:
     category: automated
     reason: "Per Gabriele: repo content is machine-published, not authored PR-by-PR here — synced from cloudnative-pg/cloudnative-pg's own api/v1/ (the types are \"split out for Go module reasons\" per that repo's CLAUDE.md)."
     upstream: cloudnative-pg/cloudnative-pg
+    ruleset_bypass_teams: [bots]
   - name: artifacts
     category: automated
     reason: "Generated manifests/checksums/catalogs are published by automation, not authored PR-by-PR; see repo-tiers.yaml for why this repo is nonetheless class A."
+    ruleset_bypass_teams: [bots]
   - name: plugin-barman-cloud
     reason: "Pages config only — review requirements now come from repo-tiers.yaml's class instead of a standalone override here."
     pages_enabled: true
@@ -107,3 +127,21 @@ repositories:
     pages_branch: gh-pages
     pages_path: /
     pages_cname: cloudnative-pg.io
+  - name: postgres-containers
+    reason: "Release automation (version bumps, tagging) needs to push directly to main and merge without waiting on human review."
+    ruleset_bypass_teams: [bots]
+  - name: pgbouncer-containers
+    reason: "Release automation (version bumps, tagging) needs to push directly to main and merge without waiting on human review."
+    ruleset_bypass_teams: [bots]
+  - name: postgis-containers
+    reason: "Release automation (version bumps, tagging) needs to push directly to main and merge without waiting on human review."
+    ruleset_bypass_teams: [bots]
+  - name: postgres-trunk-containers
+    reason: "Release automation (version bumps, tagging) needs to push directly to main and merge without waiting on human review."
+    ruleset_bypass_teams: [bots]
+  - name: postgres-extensions-containers
+    reason: "Release automation (version bumps, tagging) needs to push directly to main and merge without waiting on human review."
+    ruleset_bypass_teams: [bots]
+  - name: charts
+    reason: "Chart release automation (version bumps, packaging) needs to push directly to main and merge without waiting on human review."
+    ruleset_bypass_teams: [bots]

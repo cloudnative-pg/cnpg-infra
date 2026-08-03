@@ -72,6 +72,13 @@
 #     access (a repo's own <repo>-owners team, direct collaborators) is
 #     untouched here — that's sync-project-owner-teams.sh's job, or a
 #     governance/roster decision (see governance/CLAUDE.md).
+#   - Ruleset bypass actors: repo-policy.yaml's `ruleset_bypass_teams`
+#     (if set for a repo) adds each listed team to the ruleset's
+#     bypass_actors with bypass_mode "always" — that team can then push
+#     directly to the default branch and merge PRs with none of the
+#     ruleset's requirements satisfied, e.g. a release bot that needs to
+#     bump versions/tags without a human review. Only ever adds a bypass
+#     actor, never removes one that's already there for some other reason.
 #   - Does NOT touch "require signed commits" — GitHub accepts GPG, SSH, or
 #     S/MIME signatures for this, and turning it on can break contributors
 #     who haven't set up commit signing, so it's left as an explicit opt-in
@@ -115,6 +122,22 @@ policy_required_reviews() { # $1 = repo name -> prints integer floor, or 1 if un
     /^  - name: / { name=$3; found_name=(name==want) }
     found_name && /^    required_reviews:/ { print $2; matched=1; exit }
     END { if (!matched) print 1 }
+  ' "$POLICY"
+}
+
+policy_ruleset_bypass_teams() { # $1 = repo name -> one team slug per line, empty if none
+  [ -f "$POLICY" ] || return
+  awk -v want="$1" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && /^    ruleset_bypass_teams:/ {
+      line=$0
+      sub(/^    ruleset_bypass_teams: \[/, "", line)
+      sub(/\]$/, "", line)
+      gsub(/ /, "", line)
+      n = split(line, arr, ",")
+      for (i = 1; i <= n; i++) if (arr[i] != "") print arr[i]
+      exit
+    }
   ' "$POLICY"
 }
 
@@ -188,6 +211,14 @@ team_repo_permission() { # $1 = team slug, $2 = org/repo -> prints role_name, or
   resp="$(gh api -H "Accept: application/vnd.github.v3.repository+json" "orgs/${ORG}/teams/${1}/repos/${2}" 2>/dev/null)"
   [ $? -eq 0 ] || { echo "none"; return; }
   echo "$resp" | jq -r '.role_name // "none"'
+}
+
+declare -A TEAM_ID_CACHE=()
+team_id_for() { # $1 = team slug -> numeric team id (cached per script run)
+  if [ -z "${TEAM_ID_CACHE[$1]:-}" ]; then
+    TEAM_ID_CACHE[$1]="$(gh api "orgs/${ORG}/teams/$1" --jq '.id' 2>/dev/null)"
+  fi
+  echo "${TEAM_ID_CACHE[$1]}"
 }
 
 repo="${1:-}"
@@ -334,6 +365,29 @@ done < <(policy_global_teams global_maintain_teams)
 # --- find our own managed ruleset, if one already exists on this repo -----
 existing_ruleset_id="$(gh api "repos/$full/rulesets" 2>/dev/null | jq -r --arg name "$RULESET_NAME" '.[] | select(.name==$name) | .id' | head -1)"
 
+old_bypass_actors_json='[]'
+if [ -n "$existing_ruleset_id" ]; then
+  old_bypass_actors_json="$(gh api "repos/$full/rulesets/$existing_ruleset_id" 2>/dev/null | jq -c '.bypass_actors // []')"
+fi
+
+# --- repo-policy.yaml's ruleset_bypass_teams: add any missing team, never
+#     remove an existing bypass actor (whatever put it there) -------------
+new_bypass_actors_json="$old_bypass_actors_json"
+bypass_teams_added=()
+while read -r bt; do
+  [ -z "$bt" ] && continue
+  bt_id="$(team_id_for "$bt")"
+  if [ -z "$bt_id" ]; then
+    echo "  ⚠️  could not resolve team '$bt' (ruleset_bypass_teams) — skipping" >&2
+    continue
+  fi
+  already="$(echo "$new_bypass_actors_json" | jq --argjson id "$bt_id" 'any(.[]; .actor_id == $id and .actor_type == "Team")')"
+  if [ "$already" != "true" ]; then
+    new_bypass_actors_json="$(echo "$new_bypass_actors_json" | jq --argjson id "$bt_id" '. + [{actor_id: $id, actor_type: "Team", bypass_mode: "always"}]')"
+    bypass_teams_added+=("$bt")
+  fi
+done < <(policy_ruleset_bypass_teams "$repo")
+
 # --- build the ruleset body, preserving everything that already exists and
 #     only adding the floor described above --------------------------------
 new_ruleset_body="$(jq -n \
@@ -344,10 +398,12 @@ new_ruleset_body="$(jq -n \
   --argjson dismiss_stale "$old_dismiss_stale" \
   --argjson last_push "$old_last_push" \
   --argjson status_checks "$old_status_checks" \
+  --argjson bypass_actors "$new_bypass_actors_json" \
   '{
     name: $name,
     target: "branch",
     enforcement: "active",
+    bypass_actors: $bypass_actors,
     conditions: {ref_name: {include: ["~DEFAULT_BRANCH"], exclude: []}},
     rules: (
       [{type: "deletion"}, {type: "non_fast_forward"}, {type: "required_linear_history"}]
@@ -415,6 +471,10 @@ for entry in "${global_team_diffs[@]:-}"; do
   [ -z "$entry" ] && continue
   IFS='|' read -r gt_team gt_desired gt_current <<< "$entry"
   diff_line "team '$gt_team' permission (org-policy.yaml)" "$gt_current" "$gt_desired"
+done
+for bt in "${bypass_teams_added[@]:-}"; do
+  [ -z "$bt" ] && continue
+  diff_line "team '$bt' ruleset bypass on $default_branch (repo-policy.yaml)" "no bypass" "always (push + review-free merge)"
 done
 
 if [ "$changed" = "false" ]; then
