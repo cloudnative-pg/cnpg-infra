@@ -420,7 +420,13 @@ new_ruleset_body="$(jq -n \
           [{type: "required_status_checks", parameters: {
             do_not_enforce_on_create: false,
             strict_required_status_checks_policy: false,
-            required_status_checks: [$status_checks[] | {context: ., integration_id: null}]
+            # integration_id deliberately omitted, not set to null: the
+            # ruleset API schema rejects "integration_id": null outright
+            # (422, data matches no possible input) even though it accepts
+            # the field being absent entirely, and the original integration_id
+            # is not available here anyway, since old_status_checks only
+            # carries over each check context string.
+            required_status_checks: [$status_checks[] | {context: .}]
           }}]
         else [] end)
     )
@@ -476,6 +482,16 @@ for bt in "${bypass_teams_added[@]:-}"; do
   [ -z "$bt" ] && continue
   diff_line "team '$bt' ruleset bypass on $default_branch (repo-policy.yaml)" "no bypass" "always (push + review-free merge)"
 done
+
+# Force ruleset creation even when every individual value already matches
+# baseline (e.g. classic protection alone already satisfies the floor) —
+# otherwise a repo relying solely on classic protection would never get a
+# ruleset at all, which defeats migrating every repo off classic
+# protection and onto rulesets.
+if [ -z "$existing_ruleset_id" ] && [ "$changed" = "false" ]; then
+  echo "  - no 'main' ruleset yet — will create one from current effective protection (no values differ from today, this only changes the enforcement mechanism)"
+  changed=true
+fi
 
 if [ "$changed" = "false" ]; then
   echo "  (nothing to do — already at or above baseline)"
