@@ -31,11 +31,14 @@
 # Sourced from governance/subprojects/*.md's Scope + Owners columns
 # (whole-repository AND path-scoped rows both included here, unlike the
 # old codeowners-policy.yaml which only tracked the whole-repo row).
-# `teams: [maintainers]` is used org-wide for `*` rules today because it's
-# the only team that actually exists with broad access — governance's
-# proposed subproject committees (core-maintainers, supply-chain-
-# maintainers, etc., see governance/subprojects/README.md) aren't rolled
-# out as real GitHub teams yet; revisit once they are.
+# `maintainers` is appended after the repo's own `<repo>-owners` team on
+# every `*` rule — governance's proposed subproject committees (core-
+# maintainers, supply-chain-maintainers, etc., see
+# governance/subprojects/README.md) aren't rolled out as real GitHub teams
+# yet, so `maintainers` is the fallback broad-access team until they are.
+# repo-tiers.yaml's `owners` field is what actually populates each
+# `<repo>-owners` team's membership — this file only references the team
+# by name.
 #
 # note: present on a rule where governance documents no owner at all for
 # that scope — a real, flagged gap, not an oversight in this file.
@@ -58,7 +61,7 @@ repositories:
   - name: api
     rules:
       - path: "*"
-        teams: [maintainers]
+        teams: [api-owners, maintainers]
         users: []
         note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
   - name: artifacts
@@ -69,13 +72,13 @@ repositories:
   - name: artwork
     rules:
       - path: "*"
-        teams: [maintainers]
+        teams: [artwork-owners, maintainers]
         users: []
         note: "Repo isn't reflected in any governance/subprojects/*.md listing at all yet (see top-level CLAUDE.md's note on this gap), so no owner is documented anywhere."
   - name: barman-cloud
     rules:
       - path: "*"
-        teams: [maintainers]
+        teams: [barman-cloud-owners, maintainers]
         users: []
         note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
   - name: chaos-testing
@@ -99,7 +102,7 @@ repositories:
   - name: cloudnative-pg
     rules:
       - path: "*"
-        teams: [maintainers]
+        teams: [cloudnative-pg-owners, maintainers]
         users: []
         note: "No whole-repo owner beyond the maintainer committee documented in governance/subprojects/core-projects.md — only the three path-scoped rows below are documented."
       - path: "/docs/"
@@ -146,7 +149,7 @@ repositories:
   - name: cnpg-template
     rules:
       - path: "*"
-        teams: [maintainers]
+        teams: [cnpg-template-owners, maintainers]
         users: []
         note: "No whole-repo owner documented in governance/subprojects/supply-chain.md."
   - name: daggerverse
@@ -162,13 +165,13 @@ repositories:
   - name: github-test
     rules:
       - path: "*"
-        teams: [maintainers]
+        teams: [github-test-owners, maintainers]
         users: []
         note: "No whole-repo owner documented in governance/subprojects/supply-chain.md."
   - name: governance
     rules:
       - path: "*"
-        teams: [maintainers]
+        teams: [governance-owners, maintainers]
         users: []
         note: "Steering/CNCF-owned control repo, not part of any subproject — no individual whole-repo owner documented beyond the maintainer committee itself."
   - name: grafana-dashboards
@@ -185,7 +188,7 @@ repositories:
   - name: machinery
     rules:
       - path: "*"
-        teams: [maintainers]
+        teams: [machinery-owners, maintainers]
         users: []
         note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
   - name: pgbouncer-containers

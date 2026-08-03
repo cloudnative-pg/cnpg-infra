@@ -95,23 +95,28 @@ repositories:
     class: n/a
     subproject: org-control
     description: "Org-wide GitHub configuration: profile page and default community health files."
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: .project
     class: n/a
     subproject: org-control
     description: "Project metadata for CloudNativePG - CNCF .project automation"
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: governance
     class: n/a
     subproject: org-control
     description: "CloudNativePG governance policies"
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: cnpg-infra
     class: n/a
     subproject: org-control
     description: "Local-first admin tooling for managing github.com/cloudnative-pg org settings, teams, and CODEOWNERS — run from an admin's laptop, never from CI"
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: cnpg-template
     class: n/a
     subproject: org-control
     reason: "The template every new org repo forks from — org tooling, not a subproject deliverable. NOTE: governance/subprojects/supply-chain.md still lists this under Supply Chain; this is a known discrepancy to reconcile there, not something this file resolves on its own."
     description: "A template repository for creating new CloudNativePG-related projects."
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
 
   # --- class A: critical (customer-facing runtime/deploy surface) ------------
   - name: cloudnative-pg
@@ -119,6 +124,7 @@ repositories:
     subproject: core-projects
     reason: "The operator itself — the most important repo in the org."
     description: "The most popular Kubernetes Operator for PostgreSQL."
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: charts
     class: A
     subproject: supply-chain
@@ -156,16 +162,19 @@ repositories:
     subproject: core-projects
     reason: "The operator's own API types, split out for Go module reasons — a bug here breaks the operator's core contract, but this repo isn't itself customer-facing runtime."
     description: "The CloudNativePG API definitions and types."
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: machinery
     class: B
     subproject: core-projects
     reason: "Shared internal library consumed directly by the operator."
     description: "Common library extracted from CloudNativePG and containing functions and types shared by multiple projects"
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: barman-cloud
     class: B
     subproject: core-projects
     reason: "Backup/restore library — correctness bugs here risk data loss, but it's a library the operator depends on, not itself the customer-facing surface."
     description: "Go library for interacting with Barman Cloud object stores, used by the operator's native backup support."
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: cnpg-i
     class: B
     subproject: extensibility
@@ -239,6 +248,7 @@ repositories:
     subproject: supply-chain
     reason: "Literal playground for testing GitHub Actions."
     description: "Playground and testing ground for GitHub Actions and automation workflows."
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: cnpg-playground
     class: C
     subproject: community-ecosystem
@@ -262,6 +272,7 @@ repositories:
     subproject: unclassified
     reason: "Logos/brand assets — no runtime impact. Also not yet reflected in any governance/subprojects/*.md listing (see top-level CLAUDE.md's note on this gap)."
     description: "Logos and brand assets for CloudNativePG."
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: chaos-testing
     class: C
     subproject: supply-chain
