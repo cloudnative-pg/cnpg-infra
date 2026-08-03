@@ -43,20 +43,27 @@
 # note: present on a rule where governance documents no owner at all for
 # that scope — a real, flagged gap, not an oversight in this file.
 #
-# Exceptions (no `*` rule assigned at all): .github and .project — no team
-# has any repo access to either today (see teams.yaml), only the 7 org
-# owners can administer them, so naming a team here would name one that
-# can't act on it. Revisit once the steering-committee team (planned to
-# own governance/.project/.github, see governance/subprojects/README.md)
-# is rolled out.
+# Every managed repo gets a `*` rule now, including the org-control ones
+# (.github, .project, cnpg-infra) — no more no-owner exceptions. .github
+# and .project used to have none at all (only the 7 org owners could
+# administer them); now each gets its own <repo>-owners team like every
+# other repo, falling back to maintainers. Revisit the fallback once the
+# steering-committee team (planned to own governance/.project/.github,
+# see governance/subprojects/README.md) is rolled out.
 
 repositories:
   - name: .github
-    exception: true
-    reason: "No team has any repo access today (confirmed via teams.yaml); only the 7 org owners can administer it. Planned to become steering-committee-owned, see governance/subprojects/README.md."
+    rules:
+      - path: "*"
+        teams: [github-owners, maintainers]
+        users: []
+        note: "Until the steering-committee team (see governance/subprojects/README.md) is rolled out, maintainers is the fallback broad-access team, same as every other org-control repo without a subproject committee of its own."
   - name: .project
-    exception: true
-    reason: "Same as .github — no team access today, org-owners only, planned steering-committee ownership."
+    rules:
+      - path: "*"
+        teams: [project-owners, maintainers]
+        users: []
+        note: "Same fallback reasoning as .github."
 
   - name: api
     rules:
@@ -138,9 +145,9 @@ repositories:
   - name: cnpg-infra
     rules:
       - path: "*"
-        teams: [admins]
+        teams: [cnpg-infra-owners, admins]
         users: []
-        note: "Not in governance/subprojects/*.md — it's org-control infrastructure like governance/.project/.github, not a subproject deliverable (see governance/subprojects/README.md). Owned by admins rather than maintainers because it holds real org-admin capability (repo settings, teams, CODEOWNERS enforcement for every other repo)."
+        note: "Not in governance/subprojects/*.md — it's org-control infrastructure like governance/.project/.github, not a subproject deliverable (see governance/subprojects/README.md). Falls back to admins rather than maintainers because it holds real org-admin capability (repo settings, teams, CODEOWNERS enforcement for every other repo)."
   - name: cnpg-playground
     rules:
       - path: "*"

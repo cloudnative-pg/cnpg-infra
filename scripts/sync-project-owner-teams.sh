@@ -21,9 +21,10 @@
 # a few minutes before this check was added).
 #
 # Team naming: <repo>-owners, with any character GitHub wouldn't accept in
-# a slug (currently just "." in cloudnative-pg.github.io) replaced with "-"
-# up front, so the name we ask for and the slug GitHub assigns can't drift
-# apart from each other.
+# a slug replaced or stripped up front, so the name we ask for and the
+# slug GitHub assigns can't drift apart from each other: an internal "."
+# (cloudnative-pg.github.io) becomes "-", and a leading "." (.github,
+# .project) is dropped rather than turned into a leading "-".
 #
 # Requires: gh (authenticated, org owner — team creation, membership
 # changes, and collaborator removal all need real org-admin scope), jq
@@ -53,7 +54,8 @@ for arg in "$@"; do
 done
 
 team_slug_for() { # $1 = repo name -> prints the "<repo>-owners" slug
-  echo "$1-owners" | tr '.' '-'
+  local base="${1#.}" # strip a leading "." (.github -> github, .project -> project)
+  echo "${base}-owners" | tr '.' '-'
 }
 
 is_active_org_member() { # $1 = username -> exit 0 if they're a full, active org member
