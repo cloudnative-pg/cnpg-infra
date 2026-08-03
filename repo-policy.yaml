@@ -89,7 +89,8 @@ repositories:
     pages_path: /
   - name: api
     category: automated
-    reason: "Per Gabriele: repo content is machine-published, not authored PR-by-PR here. Likely synced from cloudnative-pg/cloudnative-pg's own api/v1/ (the types are \"split out for Go module reasons\" per that repo's CLAUDE.md) but the exact sync mechanism/upstream isn't confirmed — update this once it is."
+    reason: "Per Gabriele: repo content is machine-published, not authored PR-by-PR here — synced from cloudnative-pg/cloudnative-pg's own api/v1/ (the types are \"split out for Go module reasons\" per that repo's CLAUDE.md)."
+    upstream: cloudnative-pg/cloudnative-pg
   - name: artifacts
     category: automated
     reason: "Generated manifests/checksums/catalogs are published by automation, not authored PR-by-PR; see repo-tiers.yaml for why this repo is nonetheless class A."

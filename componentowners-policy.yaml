@@ -55,48 +55,48 @@ repositories:
   - name: .github
     rules:
       - path: "*"
-        teams: [github-owners, maintainers]
+        teams: [github-owners, admins]
         users: []
         note: "Until the steering-committee team (see governance/subprojects/README.md) is rolled out, maintainers is the fallback broad-access team, same as every other org-control repo without a subproject committee of its own."
   - name: .project
     rules:
       - path: "*"
-        teams: [project-owners, maintainers]
+        teams: [project-owners, admins]
         users: []
         note: "Same fallback reasoning as .github."
 
   - name: api
     rules:
       - path: "*"
-        teams: [api-owners, maintainers]
+        teams: [api-owners]
         users: []
         note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
   - name: artifacts
     rules:
       - path: "*"
-        teams: [artifacts-owners, maintainers]
+        teams: [artifacts-owners]
         users: []
   - name: artwork
     rules:
       - path: "*"
-        teams: [artwork-owners, maintainers]
+        teams: [artwork-owners]
         users: []
         note: "Repo isn't reflected in any governance/subprojects/*.md listing at all yet (see top-level CLAUDE.md's note on this gap), so no owner is documented anywhere."
   - name: barman-cloud
     rules:
       - path: "*"
-        teams: [barman-cloud-owners, maintainers]
+        teams: [barman-cloud-owners]
         users: []
         note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
   - name: chaos-testing
     rules:
       - path: "*"
-        teams: [chaos-testing-owners, maintainers]
+        teams: [chaos-testing-owners]
         users: []
   - name: charts
     rules:
       - path: "*"
-        teams: [charts-owners, maintainers]
+        teams: [charts-owners]
         users: []
       - path: "/charts/cluster/"
         teams: []
@@ -104,12 +104,12 @@ repositories:
   - name: ciclops
     rules:
       - path: "*"
-        teams: [ciclops-owners, maintainers]
+        teams: [ciclops-owners]
         users: []
   - name: cloudnative-pg
     rules:
       - path: "*"
-        teams: [cloudnative-pg-owners, maintainers]
+        teams: [cloudnative-pg-owners]
         users: []
         note: "No whole-repo owner beyond the maintainer committee documented in governance/subprojects/core-projects.md — only the three path-scoped rows below are documented."
       - path: "/docs/"
@@ -125,22 +125,22 @@ repositories:
   - name: cloudnative-pg.github.io
     rules:
       - path: "*"
-        teams: [cloudnative-pg-github-io-owners, maintainers, web]
+        teams: [cloudnative-pg-github-io-owners]
         users: []
   - name: cnpg-i
     rules:
       - path: "*"
-        teams: [cnpg-i-owners, maintainers]
+        teams: [cnpg-i-owners]
         users: []
   - name: cnpg-i-hello-world
     rules:
       - path: "*"
-        teams: [cnpg-i-hello-world-owners, maintainers]
+        teams: [cnpg-i-hello-world-owners]
         users: []
   - name: cnpg-i-machinery
     rules:
       - path: "*"
-        teams: [cnpg-i-machinery-owners, maintainers]
+        teams: [cnpg-i-machinery-owners]
         users: []
   - name: cnpg-infra
     rules:
@@ -151,100 +151,100 @@ repositories:
   - name: cnpg-playground
     rules:
       - path: "*"
-        teams: [cnpg-playground-owners, maintainers]
+        teams: [cnpg-playground-owners]
         users: []
   - name: cnpg-template
     rules:
       - path: "*"
-        teams: [cnpg-template-owners, maintainers]
+        teams: [cnpg-template-owners, admins]
         users: []
         note: "No whole-repo owner documented in governance/subprojects/supply-chain.md."
   - name: daggerverse
     rules:
       - path: "*"
-        teams: [daggerverse-owners, maintainers]
+        teams: [daggerverse-owners]
         users: []
   - name: docs
     rules:
       - path: "*"
-        teams: [docs-owners, maintainers]
+        teams: [docs-owners]
         users: []
   - name: github-test
     rules:
       - path: "*"
-        teams: [github-test-owners, maintainers]
+        teams: [github-test-owners]
         users: []
         note: "No whole-repo owner documented in governance/subprojects/supply-chain.md."
   - name: governance
     rules:
       - path: "*"
-        teams: [governance-owners, maintainers]
+        teams: [governance-owners, admins]
         users: []
         note: "Steering/CNCF-owned control repo, not part of any subproject — no individual whole-repo owner documented beyond the maintainer committee itself."
   - name: grafana-dashboards
     rules:
       - path: "*"
-        teams: [grafana-dashboards-owners, maintainers]
+        teams: [grafana-dashboards-owners]
         users: []
   - name: klio
     rules:
       - path: "*"
-        teams: [klio-owners, maintainers]
+        teams: [klio-owners]
         users: []
         note: "Newly added repo, not yet reflected in any governance/subprojects/*.md listing — no owner documented anywhere yet. Worth a routine editorial addition to the relevant subprojects file (see subprojects/README.md — no vote needed for that)."
   - name: machinery
     rules:
       - path: "*"
-        teams: [machinery-owners, maintainers]
+        teams: [machinery-owners]
         users: []
         note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
   - name: pgbouncer-containers
     rules:
       - path: "*"
-        teams: [pgbouncer-containers-owners, maintainers]
+        teams: [pgbouncer-containers-owners]
         users: []
   - name: plugin-barman-cloud
     rules:
       - path: "*"
-        teams: [plugin-barman-cloud-owners, maintainers]
+        teams: [plugin-barman-cloud-owners]
         users: []
   - name: postgis-containers
     rules:
       - path: "*"
-        teams: [postgis-containers-owners, maintainers]
+        teams: [postgis-containers-owners]
         users: []
   - name: postgres-containers
     rules:
       - path: "*"
-        teams: [postgres-containers-owners, maintainers]
+        teams: [postgres-containers-owners]
         users: []
   - name: postgres-extensions-containers
     rules:
       - path: "*"
-        teams: [postgres-extensions-containers-owners, maintainers, extensions-maintainers]
+        teams: [postgres-extensions-containers-owners]
         users: []
         note: "Real current CODEOWNERS lists @GabriFedi97 by name instead of via extensions-maintainers team membership — see this file's header for why the team reference is preferred going forward."
       - path: "/timescaledb-oss/"
-        teams: [extensions-maintainers]
+        teams: [postgres-extensions-containers-owners]
         users: [shusaan]
       - path: "/wal2json/"
-        teams: [extensions-maintainers]
+        teams: [postgres-extensions-containers-owners]
         users: [solidDoWant]
       - path: "/pg-ivm/"
-        teams: [extensions-maintainers]
+        teams: [postgres-extensions-containers-owners]
         users: [shusaan]
   - name: postgres-keycloak-oauth-validator
     rules:
       - path: "*"
-        teams: [postgres-keycloak-oauth-validator-owners, maintainers]
+        teams: [postgres-keycloak-oauth-validator-owners]
         users: []
   - name: postgres-trunk-containers
     rules:
       - path: "*"
-        teams: [postgres-trunk-containers-owners, maintainers]
+        teams: [postgres-trunk-containers-owners]
         users: []
   - name: webtest
     rules:
       - path: "*"
-        teams: [webtest-owners, maintainers]
+        teams: [webtest-owners]
         users: []

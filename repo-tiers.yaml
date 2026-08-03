@@ -130,7 +130,7 @@ repositories:
     subproject: supply-chain
     reason: "How the operator and clusters actually get deployed — the literal command every user runs to install/upgrade, as directly customer-facing as the operator itself."
     description: "Official Helm charts for the operator, database clusters and the Barman Cloud plugin."
-    owners: [fcanovai, gbartolini, leonardoce, mnencia, itay-grudev]
+    owners: [fcanovai, gbartolini, leonardoce, mnencia, itay-grudev, phisco]
   - name: postgres-containers
     class: A
     subproject: supply-chain
@@ -148,7 +148,7 @@ repositories:
     subproject: supply-chain
     reason: "Connection pooling image used in production."
     description: "Optimized images for PgBouncer connection pooling."
-    owners: [gbartolini, mnencia, leonardoce, NiccoloFei, litaocdl]
+    owners: [gbartolini, mnencia, fcanovai, leonardoce, NiccoloFei, litaocdl]
   - name: artifacts
     class: A
     subproject: supply-chain
@@ -192,7 +192,7 @@ repositories:
     subproject: extensibility
     reason: "A backup and recovery solution compliant with CNPG-I — same data-safety stakes as plugin-barman-cloud, same reasoning for class B over A."
     description: "Multi-Tiered Backup and Recovery Plugin for CloudNativePG"
-    owners: [gabriele-wolfox, jbattiato, NiccoloFei, GabriFedi97, jlong49]
+    owners: [fcanovai, leonardoce, armru, mnencia, gbartolini, gabriele-wolfox, jbattiato, NiccoloFei, GabriFedi97, jlong49]
   - name: postgis-containers
     class: B
     subproject: supply-chain
@@ -210,13 +210,13 @@ repositories:
     subproject: community-ecosystem
     reason: "Public-facing documentation; already category: automated in repo-policy.yaml."
     description: "CloudNativePG operator documentation project"
-    owners: [leonardoce, mnencia, gbartolini, fcanovai, SaxenaAnushka102]
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, NiccoloFei, SaxenaAnushka102]
   - name: cloudnative-pg.github.io
     class: B
     subproject: community-ecosystem
     reason: "The public project website."
     description: "CloudNativePG website"
-    owners: [gbartolini, jsilvela, FloorD, mnencia, leonardoce]
+    owners: [gbartolini, jsilvela, FloorD, mnencia, leonardoce, fcanovai]
   - name: grafana-dashboards
     class: B
     subproject: community-ecosystem
@@ -236,7 +236,7 @@ repositories:
     subproject: supply-chain
     reason: "Explicitly for early testing against PostgreSQL's development branch — not something anyone runs in production, unlike the other container-image repos."
     description: "Images built from PostgreSQL main branch for early testing."
-    owners: [NiccoloFei, fcanovai, gbartolini, jbattiato, litaocdl, mnencia]
+    owners: [NiccoloFei, fcanovai, gbartolini, leonardoce, jbattiato, litaocdl, mnencia]
   - name: ciclops
     class: C
     subproject: supply-chain
@@ -248,13 +248,13 @@ repositories:
     subproject: supply-chain
     reason: "Literal playground for testing GitHub Actions."
     description: "Playground and testing ground for GitHub Actions and automation workflows."
-    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia, NiccoloFei]
   - name: cnpg-playground
     class: C
     subproject: community-ecosystem
     reason: "For learning purposes only, explicitly must not be used in production (see its own CLAUDE.md)."
     description: "Local learning environment for CloudNativePG using Docker and Kind."
-    owners: [leonardoce, mnencia, gbartolini, fcanovai, ardentperf]
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, ardentperf]
   - name: webtest
     class: C
     subproject: community-ecosystem
