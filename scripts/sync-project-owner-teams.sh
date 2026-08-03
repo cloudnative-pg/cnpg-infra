@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 #
-# For every repo in componentowners-policy.yaml whose `*` rule lists
-# individual `users`, ensures a "<repo>-owners" GitHub team exists with
-# exactly those users as members, grants that team `maintain` on the repo,
-# and removes any *direct* (non-team) collaborator grant for those same
-# users on that repo — access should live in one place (the team), not
-# both a direct grant and a team grant simultaneously.
+# For every repo in repo-tiers.yaml with a non-empty `owners` list, ensures
+# a "<repo>-owners" GitHub team exists with EXACTLY those users as members
+# (adds anyone missing, removes anyone no longer listed), grants that team
+# `maintain` on the repo, and removes any *direct* (non-team) collaborator
+# grant for those same users on that repo — access should live in one
+# place (the team), not both a direct grant and a team grant simultaneously.
+#
+# repo-tiers.yaml's `owners` field is the single source of truth for this
+# team's membership — not componentowners-policy.yaml, which only
+# references the team by name in its CODEOWNERS `*` rule and doesn't
+# duplicate who's in it.
 #
 # Only removes a direct grant for someone who is already a full org member.
 # Adding a non-member to a team creates a *pending* invitation, not active
@@ -15,18 +20,13 @@
 # postgres-keycloak-oauth-validator/y-tabata both dropped to read-only for
 # a few minutes before this check was added).
 #
-# Does NOT touch componentowners-policy.yaml itself (adding the new team to
-# each repo's `teams:` list, and clearing the now-redundant `users:` list,
-# is a separate, deliberate edit — this script only touches live GitHub
-# team/collaborator state).
-#
 # Team naming: <repo>-owners, with any character GitHub wouldn't accept in
 # a slug (currently just "." in cloudnative-pg.github.io) replaced with "-"
 # up front, so the name we ask for and the slug GitHub assigns can't drift
 # apart from each other.
 #
-# Requires: gh (authenticated, org owner — team creation and collaborator
-# removal both need real org-admin scope), jq
+# Requires: gh (authenticated, org owner — team creation, membership
+# changes, and collaborator removal all need real org-admin scope), jq
 #
 # Usage:
 #   ./sync-project-owner-teams.sh              # dry run: show every repo's plan
@@ -36,11 +36,11 @@ set -uo pipefail
 
 ORG="cloudnative-pg"
 INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPONENTOWNERS="$INFRA_ROOT/componentowners-policy.yaml"
+TIERS="$INFRA_ROOT/repo-tiers.yaml"
 
 command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1; }
 command -v jq >/dev/null 2>&1 || { echo "error: jq is required" >&2; exit 1; }
-[ -f "$COMPONENTOWNERS" ] || { echo "error: $COMPONENTOWNERS not found" >&2; exit 1; }
+[ -f "$TIERS" ] || { echo "error: $TIERS not found" >&2; exit 1; }
 
 apply=false
 target_repo=""
@@ -60,41 +60,39 @@ is_active_org_member() { # $1 = username -> exit 0 if they're a full, active org
   gh api "orgs/${ORG}/members/${1}" >/dev/null 2>&1
 }
 
-# --- extract, for every repo, the `*` rule's users list (only non-empty) --
+# --- extract, for every repo, the `owners:` list (only non-empty) ---------
 # Parser assumes the file's existing shape: one `- name:` block per repo,
-# rules in order with `path: "*"` first, `users: [...]` on the same rule.
-mapfile -t REPO_USER_PAIRS < <(awk '
-  /^  - name:/ { name=$3; in_star=0 }
-  /path: "\*"/ { in_star=1; next }
-  /path: "\// { in_star=0 }
-  in_star && /^        users:/ {
+# with an `owners: [...]` line somewhere in that block (order-independent,
+# unlike componentowners-policy.yaml's per-rule fields).
+mapfile -t REPO_OWNER_PAIRS < <(awk '
+  /^  - name:/ { name=$3 }
+  /^    owners:/ {
     line=$0
-    sub(/^        users: \[/, "", line)
+    sub(/^    owners: \[/, "", line)
     sub(/\]$/, "", line)
     gsub(/ /, "", line)
     if (length(line) > 0) print name "\t" line
-    in_star=0
   }
-' "$COMPONENTOWNERS")
+' "$TIERS")
 
 if [ -n "$target_repo" ]; then
   filtered=()
-  for pair in "${REPO_USER_PAIRS[@]}"; do
+  for pair in "${REPO_OWNER_PAIRS[@]}"; do
     [[ "$pair" == "$target_repo"$'\t'* ]] && filtered+=("$pair")
   done
-  REPO_USER_PAIRS=("${filtered[@]}")
-  if [ "${#REPO_USER_PAIRS[@]}" -eq 0 ]; then
-    echo "error: '$target_repo' has no non-empty users list in componentowners-policy.yaml's * rule" >&2
+  REPO_OWNER_PAIRS=("${filtered[@]}")
+  if [ "${#REPO_OWNER_PAIRS[@]}" -eq 0 ]; then
+    echo "error: '$target_repo' has no non-empty owners list in repo-tiers.yaml" >&2
     exit 1
   fi
 fi
 
 apply_note=""
 [ "$apply" = "true" ] && apply_note=" (--apply: changes WILL be made)"
-echo "Processing ${#REPO_USER_PAIRS[@]} repo(s)${apply_note}..." >&2
+echo "Processing ${#REPO_OWNER_PAIRS[@]} repo(s)${apply_note}..." >&2
 echo >&2
 
-for pair in "${REPO_USER_PAIRS[@]}"; do
+for pair in "${REPO_OWNER_PAIRS[@]}"; do
   repo="${pair%%$'\t'*}"
   users_csv="${pair#*$'\t'}"
   IFS=',' read -r -a desired_users <<< "$users_csv"
@@ -119,6 +117,19 @@ for pair in "${REPO_USER_PAIRS[@]}"; do
       [ "$u" = "$m" ] && found=true && break
     done
     [ "$found" = "false" ] && missing_members+=("$u")
+  done
+
+  # Reconciliation: anyone currently an active team member but no longer in
+  # repo-tiers.yaml's owners list gets removed. Safe to do unconditionally
+  # (unlike adding) — removing an existing team member is always instant,
+  # there's no "pending" equivalent on the way out.
+  extra_members=()
+  for m in "${current_members[@]:-}"; do
+    found=false
+    for u in "${desired_users[@]}"; do
+      [ "$u" = "$m" ] && found=true && break
+    done
+    [ "$found" = "false" ] && extra_members+=("$m")
   done
 
   current_permission="unknown"
@@ -152,10 +163,10 @@ for pair in "${REPO_USER_PAIRS[@]}"; do
 
   if [ "$team_exists" = "false" ]; then
     echo "  - team does not exist: would create '$slug' with members: ${desired_users[*]}"
-  elif [ "${#missing_members[@]}" -gt 0 ]; then
-    echo "  - team exists, missing members: ${missing_members[*]}"
   else
-    echo "  - team exists with all desired members already"
+    [ "${#missing_members[@]}" -gt 0 ] && echo "  - missing members to add: ${missing_members[*]}"
+    [ "${#extra_members[@]}" -gt 0 ] && echo "  - extra members to remove (no longer in repo-tiers.yaml): ${extra_members[*]}"
+    [ "${#missing_members[@]}" -eq 0 ] && [ "${#extra_members[@]}" -eq 0 ] && echo "  - team exists with exactly the desired members"
   fi
 
   if [ "$current_permission" != "maintain" ]; then
@@ -185,6 +196,12 @@ for pair in "${REPO_USER_PAIRS[@]}"; do
       gh api -X PUT "orgs/${ORG}/teams/${slug}/memberships/${u}" -f role=member >/dev/null \
         && echo "  ✓ added $u to $slug" \
         || echo "  ✗ failed to add $u to $slug"
+    done
+    for m in "${extra_members[@]:-}"; do
+      [ -z "$m" ] && continue
+      gh api -X DELETE "orgs/${ORG}/teams/${slug}/memberships/${m}" >/dev/null \
+        && echo "  ✓ removed $m from $slug" \
+        || echo "  ✗ failed to remove $m from $slug"
     done
     if [ "$current_permission" != "maintain" ]; then
       gh api -X PUT "orgs/${ORG}/teams/${slug}/repos/${full}" -f permission=maintain >/dev/null \

@@ -68,6 +68,17 @@
 # deploying this file for the first time changes nothing until you
 # actually edit one.
 #
+# owners lists the individuals who should make up this repo's
+# "<repo>-owners" GitHub team — that team is what componentowners-policy.yaml
+# references in the repo's CODEOWNERS `*` rule, not a hardcoded user list
+# there anymore. scripts/sync-project-owner-teams.sh reads this field (not
+# componentowners-policy.yaml, which no longer carries individual names for
+# any repo with an owners team) to create the team if it doesn't exist and
+# reconcile its membership — adding anyone missing, removing anyone no
+# longer listed here. Omit the field (or leave it empty) for a repo with no
+# dedicated owners team; it'll keep relying on componentowners-policy.yaml's
+# other teams (typically `maintainers`) instead.
+#
 # Fields:
 #   name:        repo name, must match an entry in managed-repos.yaml
 #   class:       A | B | C | n/a (org-control repos)
@@ -76,6 +87,7 @@
 #   reason:      why this class, when it's not obvious from the repo's own
 #                description alone
 #   description: desired GitHub repo description; omit to leave untouched
+#   owners:      desired membership of "<repo>-owners"; omit if none
 
 repositories:
   # --- org-control: outside this scheme entirely ---------------------------
@@ -112,26 +124,31 @@ repositories:
     subproject: supply-chain
     reason: "How the operator and clusters actually get deployed — the literal command every user runs to install/upgrade, as directly customer-facing as the operator itself."
     description: "Official Helm charts for the operator, database clusters and the Barman Cloud plugin."
+    owners: [fcanovai, gbartolini, leonardoce, mnencia, itay-grudev]
   - name: postgres-containers
     class: A
     subproject: supply-chain
     reason: "The PostgreSQL operand image running in every user's database pods."
     description: "Operand images for all community-supported PostgreSQL versions."
+    owners: [gbartolini, mnencia, fcanovai, NiccoloFei, litaocdl]
   - name: postgres-extensions-containers
     class: A
     subproject: supply-chain
     reason: "Extension images loaded directly into production databases."
     description: "Container images for community PostgreSQL extensions to be used as pluggable image volumes with CloudNativePG"
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
   - name: pgbouncer-containers
     class: A
     subproject: supply-chain
     reason: "Connection pooling image used in production."
     description: "Optimized images for PgBouncer connection pooling."
+    owners: [gbartolini, mnencia, leonardoce, NiccoloFei, litaocdl]
   - name: artifacts
     class: A
     subproject: supply-chain
     reason: "Generated YAML manifests are a direct deployment path for many users, not just an input to other tooling — at least as customer-facing as charts, per Gabriele. Also category: automated in repo-policy.yaml."
     description: "Storage for generated manifests, checksums, metadata, and image catalogs."
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
 
   # --- class B: important -----------------------------------------------------
   - name: api
@@ -154,46 +171,55 @@ repositories:
     subproject: extensibility
     reason: "The CNPG-I interface spec itself — a breaking change here breaks every plugin that implements it, but it isn't itself deployed to a customer's cluster."
     description: "The CloudNativePG Interface (CNPG-I) gRPC specification."
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru]
   - name: plugin-barman-cloud
     class: B
     subproject: extensibility
     reason: "The reference backup/restore plugin — same data-safety stakes as barman-cloud, same reasoning for class B over A."
     description: "The reference CNPG-I backup/restore plugin for Barman Cloud."
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei]
   - name: klio
     class: B
     subproject: extensibility
     reason: "A backup and recovery solution compliant with CNPG-I — same data-safety stakes as plugin-barman-cloud, same reasoning for class B over A."
     description: "Multi-Tiered Backup and Recovery Plugin for CloudNativePG"
+    owners: [gabriele-wolfox, jbattiato, NiccoloFei, GabriFedi97, jlong49]
   - name: postgis-containers
     class: B
     subproject: supply-chain
     reason: "Per Gabriele — the way forward is PostGIS as a pluggable extension via postgres-extensions-containers, not this standalone bundled image, so it's moved off the critical customer-facing path."
     description: "PostgreSQL images bundled with PostGIS extensions."
+    owners: [gbartolini, mnencia, leonardoce, fcanovai, NiccoloFei, litaocdl]
   - name: daggerverse
     class: B
     subproject: supply-chain
     reason: "CI/CD infrastructure other repos' pipelines depend on."
     description: "Dagger modules for portable CI/CD workflows."
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, NiccoloFei, jbattiato]
   - name: docs
     class: B
     subproject: community-ecosystem
     reason: "Public-facing documentation; already category: automated in repo-policy.yaml."
     description: "CloudNativePG operator documentation project"
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, SaxenaAnushka102]
   - name: cloudnative-pg.github.io
     class: B
     subproject: community-ecosystem
     reason: "The public project website."
     description: "CloudNativePG website"
+    owners: [gbartolini, jsilvela, FloorD, mnencia, leonardoce]
   - name: grafana-dashboards
     class: B
     subproject: community-ecosystem
     reason: "Dashboards used to monitor production CNPG clusters, though not runtime code themselves."
     description: "Standardized Grafana dashboards for monitoring CNPG clusters."
+    owners: [itay-grudev, phisco]
   - name: cnpg-i-machinery
     class: B
     subproject: extensibility
     reason: "Shared Go code for CNPG-I plugins — a library, not the spec itself."
     description: "Shared Go code for developing CNPG-I compatible plugins."
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru]
 
   # --- class C: low-stakes ------------------------------------------------
   - name: postgres-trunk-containers
@@ -201,11 +227,13 @@ repositories:
     subproject: supply-chain
     reason: "Explicitly for early testing against PostgreSQL's development branch — not something anyone runs in production, unlike the other container-image repos."
     description: "Images built from PostgreSQL main branch for early testing."
+    owners: [NiccoloFei, fcanovai, gbartolini, jbattiato, litaocdl, mnencia]
   - name: ciclops
     class: C
     subproject: supply-chain
     reason: "CI reporting tool."
     description: "ciclops (CI-clops) is a GitHub Action that summarizes the result of a Test Suite executed in a series of \"strategy matrix\" branches, and helps orient investigations when tests fail."
+    owners: [jsilvela, NiccoloFei]
   - name: github-test
     class: C
     subproject: supply-chain
@@ -216,16 +244,19 @@ repositories:
     subproject: community-ecosystem
     reason: "For learning purposes only, explicitly must not be used in production (see its own CLAUDE.md)."
     description: "Local learning environment for CloudNativePG using Docker and Kind."
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, ardentperf]
   - name: webtest
     class: C
     subproject: community-ecosystem
     reason: "A PostgreSQL stress-testing tool, not customer-facing. NOTE: governance/subprojects/community-ecosystem.md describes this repo as \"Internal tooling for website and documentation testing\" — confirmed wrong by Gabriele; a real discrepancy worth fixing in governance, not resolved here."
     description: "A simple PostgreSQL stress tool"
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru]
   - name: cnpg-i-hello-world
     class: C
     subproject: extensibility
     reason: "Explicitly a template/example plugin."
     description: "A simplified template/example for building new plugins."
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru]
   - name: artwork
     class: C
     subproject: unclassified
@@ -236,8 +267,10 @@ repositories:
     subproject: supply-chain
     reason: "Per Gabriele — moved from class B."
     description: "Chaos testing project to enhance CloudNativePG's resilience and fault tolerance"
+    owners: [gbartolini, mnencia, fcanovai, XploY04]
   - name: postgres-keycloak-oauth-validator
     class: C
     subproject: extensibility
     reason: "Experimental — per Gabriele, moved from class B."
     description: "A PostgreSQL module for OAuth2/Keycloak token validation."
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, y-tabata]
