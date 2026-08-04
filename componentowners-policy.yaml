@@ -98,9 +98,15 @@ repositories:
       - path: "*"
         teams: [charts-owners]
         users: []
+      - path: "/charts/cloudnative-pg/"
+        teams: [charts-owners]
+        users: []
       - path: "/charts/cluster/"
-        teams: []
-        users: [itay-grudev, phisco]
+        teams: [charts-owners]
+        users: []
+      - path: "/charts/plugin-barman-cloud/"
+        teams: [charts-owners]
+        users: []
   - name: ciclops
     rules:
       - path: "*"
@@ -113,13 +119,13 @@ repositories:
         users: []
         note: "No whole-repo owner beyond the maintainer committee documented in governance/subprojects/core-projects.md — only the three path-scoped rows below are documented."
       - path: "/docs/"
-        teams: []
+        teams: [cloudnative-pg-owners]
         users: [jsilvela]
       - path: "/config/olm-*/"
-        teams: []
+        teams: [cloudnative-pg-owners]
         users: [NiccoloFei]
       - path: "/.github/ /hack/ /tests/"
-        teams: []
+        teams: [cloudnative-pg-owners]
         users: [NiccoloFei, litaocdl, jsilvela]
         note: "Governance documents this as one combined 'Testing' scope covering all three paths, not three separate rows; split into three CODEOWNERS lines with identical owners when generating the real file."
   - name: cloudnative-pg.github.io
