@@ -307,6 +307,7 @@ classic_force_push_blocked="$(echo "$bp_json" | jq -r '(.allow_force_pushes.enab
 classic_deletion_blocked="$(echo "$bp_json" | jq -r '(.allow_deletions.enabled | if . == null then true else . end) == false')"
 classic_linear_history="$(echo "$bp_json" | jq -r '.required_linear_history.enabled | if . == null then false else . end')"
 classic_status_checks="$(echo "$bp_json" | jq -c '[(.required_status_checks.checks // [])[].context] | unique')"
+classic_strict_checks="$(echo "$bp_json" | jq -r '.required_status_checks.strict | if . == null then false else . end')"
 
 rules_pr="$(echo "$rules_json" | jq -c '[.[] | select(.type=="pull_request")][0].parameters // {}')"
 rules_reviews="$(echo "$rules_pr" | jq -r '.required_approving_review_count // 0')"
@@ -318,6 +319,7 @@ rules_force_push_blocked="$(echo "$rules_json" | jq -r 'any(.[]; .type=="non_fas
 rules_deletion_blocked="$(echo "$rules_json" | jq -r 'any(.[]; .type=="deletion")')"
 rules_linear_history="$(echo "$rules_json" | jq -r 'any(.[]; .type=="required_linear_history")')"
 rules_status_checks="$(echo "$rules_json" | jq -c '[.[] | select(.type=="required_status_checks")][0].parameters.required_status_checks // [] | map(.context)')"
+rules_strict_checks="$(echo "$rules_json" | jq -r '[.[] | select(.type=="required_status_checks")][0].parameters.strict_required_status_checks_policy // false')"
 
 old_reviews=$(( classic_reviews > rules_reviews ? classic_reviews : rules_reviews ))
 old_code_owner="$([ "$classic_code_owner" = "true" ] || [ "$rules_code_owner" = "true" ] && echo true || echo false)"
@@ -328,9 +330,11 @@ old_force_push_blocked="$([ "$classic_force_push_blocked" = "true" ] || [ "$rule
 old_deletion_blocked="$([ "$classic_deletion_blocked" = "true" ] || [ "$rules_deletion_blocked" = "true" ] && echo true || echo false)"
 old_linear_history="$([ "$classic_linear_history" = "true" ] || [ "$rules_linear_history" = "true" ] && echo true || echo false)"
 old_status_checks="$(jq -cn --argjson a "$classic_status_checks" --argjson b "$rules_status_checks" '($a + $b) | unique')"
+old_strict_checks="$([ "$classic_strict_checks" = "true" ] || [ "$rules_strict_checks" = "true" ] && echo true || echo false)"
 
 old_squash="$(echo "$repo_json" | jq -r '.allow_squash_merge | if . == null then false else . end')"
 old_rebase="$(echo "$repo_json" | jq -r '.allow_rebase_merge | if . == null then false else . end')"
+old_merge_commit="$(echo "$repo_json" | jq -r '.allow_merge_commit | if . == null then true else . end')"
 old_update_branch="$(echo "$repo_json" | jq -r '.allow_update_branch | if . == null then false else . end')"
 old_delete_on_merge="$(echo "$repo_json" | jq -r '.delete_branch_on_merge | if . == null then false else . end')"
 old_squash_title="$(echo "$repo_json" | jq -r '.squash_merge_commit_title // "unknown"')"
@@ -456,7 +460,7 @@ new_ruleset_body="$(jq -n \
       + (if ($status_checks | length) > 0 then
           [{type: "required_status_checks", parameters: {
             do_not_enforce_on_create: false,
-            strict_required_status_checks_policy: false,
+            strict_required_status_checks_policy: true,
             # integration_id deliberately omitted, not set to null: the
             # ruleset API schema rejects "integration_id": null outright
             # (422, data matches no possible input) even though it accepts
@@ -499,6 +503,7 @@ diff_line "code owner review required"        "$old_code_owner"   "$new_code_own
 diff_line "force pushes allowed on $default_branch" "$([ "$old_force_push_blocked" = "true" ] && echo false || echo true)" "false"
 diff_line "deletion allowed on $default_branch"     "$([ "$old_deletion_blocked" = "true" ] && echo false || echo true)"   "false"
 diff_line "linear history required"           "$old_linear_history" "true"
+[ "$(echo "$old_status_checks" | jq 'length')" -gt 0 ] && diff_line "require branches up to date before merging" "$old_strict_checks" "true"
 diff_line "secret scanning"                   "$secret_scanning"  "enabled"
 diff_line "secret scanning push protection"   "$push_protection"  "enabled"
 diff_line "dependabot security updates"       "$dependabot_sec"   "enabled"
@@ -506,6 +511,7 @@ diff_line "dependabot vulnerability alerts"   "$vuln_enabled"     "true"
 diff_line "release immutability"              "$old_immutable_releases" "$new_immutable_releases"
 diff_line "allow squash merging"              "$old_squash"       "true"
 diff_line "allow rebase merging"              "$old_rebase"       "true"
+diff_line "allow merge commit"                "$old_merge_commit" "false"
 diff_line "suggest updating PR branches"      "$old_update_branch" "true"
 diff_line "delete head branches on merge"     "$old_delete_on_merge" "true"
 diff_line "squash commit title"               "$old_squash_title"   "PR_TITLE"
@@ -538,9 +544,9 @@ fi
 
 echo
 echo "Untouched by this script (preserved as-is): required status check names,"
-echo "admin enforcement, allow-merge-commit, signed-commit requirement, any"
-echo "other ruleset on the repo, visibility, collaborators, and any team's"
-echo "access other than org-policy.yaml's global_admin_teams/global_maintain_teams."
+echo "admin enforcement, signed-commit requirement, any other ruleset on the"
+echo "repo, visibility, collaborators, and any team's access other than"
+echo "org-policy.yaml's global_admin_teams/global_maintain_teams."
 echo
 
 if [ "$apply" != "true" ]; then
@@ -585,17 +591,18 @@ if [ "$dependabot_sec" != "enabled" ]; then
     || echo "  ✗ failed to enable dependabot security updates"
 fi
 
-if [ "$old_squash" != "true" ] || [ "$old_rebase" != "true" ] || \
+if [ "$old_squash" != "true" ] || [ "$old_rebase" != "true" ] || [ "$old_merge_commit" != "false" ] || \
    [ "$old_update_branch" != "true" ] || [ "$old_delete_on_merge" != "true" ] || \
    [ "$old_squash_title" != "PR_TITLE" ] || [ "$old_squash_message" != "PR_BODY" ]; then
   gh api -X PATCH "repos/$full" \
     -F "allow_squash_merge=true" \
     -F "allow_rebase_merge=true" \
+    -F "allow_merge_commit=false" \
     -F "allow_update_branch=true" \
     -F "delete_branch_on_merge=true" \
     -F "squash_merge_commit_title=PR_TITLE" \
     -F "squash_merge_commit_message=PR_BODY" >/dev/null \
-    && echo "  ✓ merge/branch settings updated (squash, rebase, suggest-update, delete-on-merge, squash message = PR title+body)" \
+    && echo "  ✓ merge/branch settings updated (squash, rebase, merge-commit disabled, suggest-update, delete-on-merge, squash message = PR title+body)" \
     || echo "  ✗ failed to update merge/branch settings"
 fi
 

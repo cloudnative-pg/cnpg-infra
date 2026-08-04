@@ -173,7 +173,7 @@ org_default_perm="$(echo "$org_json" | jq -r '.default_repository_permission // 
   echo
   echo "Full detail (team/collaborator lists, status-check names, per-repo OSPS table) is below the matrix, one section per repo."
   echo "🤖 in the Reviews column = repo is classified \`automated\` in [\`repo-policy.yaml\`](repo-policy.yaml); a low/zero review count there is expected, not a gap."
-  echo "Merge cfg = how many of {squash merge, rebase merge, suggest-update-branch, delete-branch-on-merge, linear history, squash title = PR title, squash message = PR body} are on; full breakdown per repo below."
+  echo "Merge cfg = how many of {squash merge, rebase merge, merge commit disabled, suggest-update-branch, delete-branch-on-merge, linear history, squash title = PR title, squash message = PR body} match baseline; full breakdown per repo below."
   echo "Class comes from [\`repo-tiers.yaml\`](repo-tiers.yaml): A = critical, B = important, C = low-stakes, n/a = org-control repo, ? = not yet classified."
   echo
   echo "| Repo | Class | Public | Protected | Reviews | Owners | No force-push | No delete | Checks | Secrets | Push guard | Dependabot | Vuln alerts | LICENSE | Merge cfg |"
@@ -256,6 +256,10 @@ for repo in "${REPOS[@]}"; do
   rules_status_checks_list="$(echo "$rules_json" | jq -c '[.[] | select(.type=="required_status_checks")][0].parameters.required_status_checks // [] | map(.context)')"
   status_checks="$(jq -nr --argjson a "$classic_status_checks_list" --argjson b "$rules_status_checks_list" '($a + $b) | unique | if length == 0 then "(none)" else join(", ") end')"
 
+  classic_strict_checks="$(echo "$bp_json" | jq -r '.required_status_checks.strict | if . == null then false else . end')"
+  rules_strict_checks="$(echo "$rules_json" | jq -r '[.[] | select(.type=="required_status_checks")][0].parameters.strict_required_status_checks_policy // false')"
+  strict_checks="$([ "$classic_strict_checks" = "true" ] || [ "$rules_strict_checks" = "true" ] && echo true || echo false)"
+
   ruleset_names="$(gh api "repos/$full/rulesets" 2>/dev/null | jq -r '[.[] | select(.target=="branch" and .enforcement=="active") | .name] | if length == 0 then "" else join(", ") end')"
 
   allow_squash="$(echo "$repo_json" | jq -r '.allow_squash_merge | if . == null then false else . end')"
@@ -326,9 +330,10 @@ for repo in "${REPOS[@]}"; do
   for v in "$allow_squash" "$allow_rebase" "$allow_update_branch" "$delete_on_merge" "$linear_history"; do
     [ "$v" = "true" ] && merge_cfg_score=$((merge_cfg_score + 1))
   done
+  [ "$allow_merge_commit" = "false" ] && merge_cfg_score=$((merge_cfg_score + 1))
   [ "$squash_title" = "PR_TITLE" ] && merge_cfg_score=$((merge_cfg_score + 1))
   [ "$squash_message" = "PR_BODY" ] && merge_cfg_score=$((merge_cfg_score + 1))
-  merge_cfg_cell="$([ "$merge_cfg_score" -eq 7 ] && echo "✅7/7" || echo "⚠️${merge_cfg_score}/7")"
+  merge_cfg_cell="$([ "$merge_cfg_score" -eq 8 ] && echo "✅8/8" || echo "⚠️${merge_cfg_score}/8")"
   {
     printf '| [%s](#%s) | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
       "$repo" "$(echo "$repo" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')" \
@@ -376,11 +381,12 @@ for repo in "${REPOS[@]}"; do
     echo "- Branch deletion blocked: $(icon "$([ "$allow_deletions" = "false" ] && echo true || echo false)")"
     echo "- Linear history required: $(icon "$linear_history")"
     echo "- Required status checks: $status_checks"
+    echo "- Require branches to be up to date before merging: $(icon "$strict_checks")$([ "$status_checks" = "(none)" ] && echo " (n/a — no status checks required)")"
     echo
     echo "**Merge & branch settings**"
     echo "- Allow squash merging: $(icon "$allow_squash")"
     echo "- Allow rebase merging: $(icon "$allow_rebase")"
-    echo "- Allow merge commit: $(icon "$allow_merge_commit")$([ "$linear_history" = "true" ] && [ "$allow_merge_commit" = "true" ] && echo " (offered in the UI, but blocked from actually landing by linear-history above)")"
+    echo "- Allow merge commit (baseline: disabled): $(icon "$([ "$allow_merge_commit" = "false" ] && echo true || echo false)")$([ "$linear_history" = "true" ] && [ "$allow_merge_commit" = "true" ] && echo " (offered in the UI, but blocked from actually landing by linear-history above)")"
     echo "- Always suggest updating PR branches: $(icon "$allow_update_branch")"
     echo "- Automatically delete head branches: $(icon "$delete_on_merge")"
     echo "- Squash commit title = PR title: $(icon "$([ "$squash_title" = "PR_TITLE" ] && echo true || echo false)") (\`$squash_title\`)"
