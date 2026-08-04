@@ -39,3 +39,53 @@ global_admin_teams:
 
 global_maintain_teams:
   - bots
+
+# subproject_committees
+#   Placeholder GitHub teams for governance's proposed federated model
+#   (CNCF incubation restructuring, cloudnative-pg/governance's dev/67
+#   branch: a Steering Committee separate from per-subproject maintainer
+#   committees — Core Projects, Supply Chain, Community & Ecosystem,
+#   Extensibility). These 4 teams already exist on GitHub (created ahead
+#   of ratification, at Gabriele's request, to have the layout ready) and
+#   are referenced by name in governance's real CODEOWNERS today
+#   (subprojects/*.md path rules) — but membership below is a *placeholder*:
+#   all 4 currently mirror the `admins` team (the same 5 people), not a
+#   ratified per-subproject roster. Update this list once dev/67 lands and
+#   assigns real, distinct membership per committee.
+#
+#   Unlike repo-tiers.yaml's `owners` field, there is no sync script for
+#   this yet — editing this list does not by itself change GitHub team
+#   membership. Whoever updates this file also needs to reconcile the
+#   corresponding GitHub team by hand (or ask for the sync tooling to be
+#   extended to cover this, the way sync-project-owner-teams.sh does for
+#   the `<repo>-owners` teams).
+#
+#   No direct repo access is granted to any of these 4 teams today —
+#   governance's CODEOWNERS lines that reference them also list `admins`
+#   as a fallback, which already has real access, so review-routing works
+#   even with these teams currently empty of distinct membership.
+subproject_committees:
+  core-maintainers:
+    - armru
+    - fcanovai
+    - gbartolini
+    - leonardoce
+    - mnencia
+  supply-chain-maintainers:
+    - armru
+    - fcanovai
+    - gbartolini
+    - leonardoce
+    - mnencia
+  community-ecosystem-maintainers:
+    - armru
+    - fcanovai
+    - gbartolini
+    - leonardoce
+    - mnencia
+  extensibility-maintainers:
+    - armru
+    - fcanovai
+    - gbartolini
+    - leonardoce
+    - mnencia

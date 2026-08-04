@@ -24,11 +24,11 @@ command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1;
 command -v jq >/dev/null 2>&1 || { echo "error: jq is required" >&2; exit 1; }
 
 echo "Fetching org owners/members..." >&2
-owners_json="$(gh api -X GET "orgs/${ORG}/members" -f role=admin)"
-members_json="$(gh api -X GET "orgs/${ORG}/members" -f role=member)"
+owners_json="$(gh api --paginate -X GET "orgs/${ORG}/members" -f role=admin)"
+members_json="$(gh api --paginate -X GET "orgs/${ORG}/members" -f role=member)"
 
 echo "Fetching teams..." >&2
-teams_json="$(gh api "orgs/${ORG}/teams")"
+teams_json="$(gh api --paginate "orgs/${ORG}/teams")"
 
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
