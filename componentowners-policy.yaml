@@ -70,7 +70,7 @@ repositories:
       - path: "*"
         teams: [api-owners]
         users: []
-        note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
+        note: "No whole-repo owner documented in governance/subprojects/core.md."
   - name: artifacts
     rules:
       - path: "*"
@@ -87,7 +87,7 @@ repositories:
       - path: "*"
         teams: [barman-cloud-owners]
         users: []
-        note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
+        note: "No whole-repo owner documented in governance/subprojects/core.md."
   - name: chaos-testing
     rules:
       - path: "*"
@@ -117,7 +117,7 @@ repositories:
       - path: "*"
         teams: [cloudnative-pg-owners]
         users: []
-        note: "No whole-repo owner beyond the maintainer committee documented in governance/subprojects/core-projects.md — only the three path-scoped rows below are documented."
+        note: "No whole-repo owner beyond the maintainer committee documented in governance/subprojects/core.md — only the three path-scoped rows below are documented."
       - path: "/docs/"
         teams: [cloudnative-pg-owners]
         users: [jsilvela]
@@ -187,22 +187,22 @@ repositories:
         teams: [governance-owners, admins]
         users: []
         note: "Steering/CNCF-owned control repo, not part of any subproject — no individual whole-repo owner documented beyond the maintainer committee itself."
-      - path: "/subprojects/core-projects.md"
+      - path: "/subprojects/core.md"
         teams: [core-maintainers]
         users: []
-        note: "Real current CODEOWNERS scopes each subprojects/*.md file to its own subproject committee, per governance/subprojects/README.md and governance's own CLAUDE.md. core-maintainers does not exist as a GitHub team yet (the federated model is drafted, not yet ratified/rolled out) — kept verbatim, matching the real file, not something to invent a team for here."
+        note: "Real current CODEOWNERS scopes each subprojects/*.md file to its own subproject committee, per governance/subprojects/README.md and governance's own CLAUDE.md. core-maintainers now exists as a real GitHub team (created ahead of dev/67's ratification), but membership is a placeholder mirroring admins, not a ratified roster (see org-policy.yaml's subproject_committees). Path anticipates governance/subprojects/core-projects.md being renamed to core.md as part of the same rename (not yet done as of this writing — check before relying on this path matching a real file)."
       - path: "/subprojects/supply-chain.md"
         teams: [supply-chain-maintainers]
         users: []
-        note: "Same as core-projects.md above — supply-chain-maintainers does not exist as a GitHub team yet."
+        note: "Same as core.md above — supply-chain-maintainers exists as a real team with placeholder membership."
       - path: "/subprojects/community-ecosystem.md"
         teams: [community-ecosystem-maintainers]
         users: []
-        note: "Same as core-projects.md above — community-ecosystem-maintainers does not exist as a GitHub team yet."
+        note: "Same as core.md above — community-ecosystem-maintainers exists as a real team with placeholder membership."
       - path: "/subprojects/extensibility.md"
         teams: [extensibility-maintainers]
         users: []
-        note: "Same as core-projects.md above — extensibility-maintainers does not exist as a GitHub team yet."
+        note: "Same as core.md above — extensibility-maintainers exists as a real team with placeholder membership."
   - name: grafana-dashboards
     rules:
       - path: "*"
@@ -219,7 +219,7 @@ repositories:
       - path: "*"
         teams: [machinery-owners]
         users: []
-        note: "No whole-repo owner documented in governance/subprojects/core-projects.md."
+        note: "No whole-repo owner documented in governance/subprojects/core.md."
   - name: pgbouncer-containers
     rules:
       - path: "*"

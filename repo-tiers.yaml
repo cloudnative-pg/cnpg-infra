@@ -82,7 +82,7 @@
 # Fields:
 #   name:        repo name, must match an entry in managed-repos.yaml
 #   class:       A | B | C | n/a (org-control repos)
-#   subproject:  core-projects | supply-chain | community-ecosystem |
+#   subproject:  core | supply-chain | community-ecosystem |
 #                extensibility | org-control | unclassified
 #   reason:      why this class, when it's not obvious from the repo's own
 #                description alone
@@ -121,7 +121,7 @@ repositories:
   # --- class A: critical (customer-facing runtime/deploy surface) ------------
   - name: cloudnative-pg
     class: A
-    subproject: core-projects
+    subproject: core
     reason: "The operator itself — the most important repo in the org."
     description: "The most popular Kubernetes Operator for PostgreSQL."
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
@@ -159,19 +159,19 @@ repositories:
   # --- class B: important -----------------------------------------------------
   - name: api
     class: B
-    subproject: core-projects
+    subproject: core
     reason: "The operator's own API types, split out for Go module reasons — a bug here breaks the operator's core contract, but this repo isn't itself customer-facing runtime."
     description: "The CloudNativePG API definitions and types."
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: machinery
     class: B
-    subproject: core-projects
+    subproject: core
     reason: "Shared internal library consumed directly by the operator."
     description: "Common library extracted from CloudNativePG and containing functions and types shared by multiple projects"
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: barman-cloud
     class: B
-    subproject: core-projects
+    subproject: core
     reason: "Backup/restore library — correctness bugs here risk data loss, but it's a library the operator depends on, not itself the customer-facing surface."
     description: "Go library for interacting with Barman Cloud object stores, used by the operator's native backup support."
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]

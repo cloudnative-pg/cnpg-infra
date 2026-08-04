@@ -75,7 +75,7 @@ if errors.empty?
 
   # --- check 3: repo-tiers.yaml enum values ---
   valid_classes = %w[A B C n/a]
-  valid_subprojects = %w[core-projects supply-chain community-ecosystem extensibility org-control unclassified]
+  valid_subprojects = %w[core supply-chain community-ecosystem extensibility org-control unclassified]
   data[:tiers].fetch("repositories", []).each do |entry|
     name = entry["name"]
     klass = entry["class"]
