@@ -103,7 +103,7 @@ for pair in "${REPO_OWNER_PAIRS[@]}"; do
 
   echo "=== $full -> team '$slug' ==="
 
-  team_json="$(gh api "orgs/${ORG}/teams/${slug}" 2>/dev/null)"
+  _team_json="$(gh api "orgs/${ORG}/teams/${slug}" 2>/dev/null)" # output unused, only the exit code matters
   team_exists=$([ $? -eq 0 ] && echo true || echo false)
 
   if [ "$team_exists" = "true" ]; then

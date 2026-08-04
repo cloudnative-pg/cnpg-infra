@@ -1,0 +1,19 @@
+# Project-wide shellcheck config.
+#
+# Both disabled checks are pure style opinions this codebase deliberately
+# does the other way, not real bugs:
+#
+# SC2181 (check $? directly): this project checks `[ $? -eq 0 ]` right
+# after a `gh api` call on purpose, after two real bugs earlier in this
+# project's life came from checking a command's *output* instead of its
+# actual exit code (a 404 error body still has non-zero jq length, and a
+# bodyless 204 response looks like failure) -- splitting the command and
+# the check across two lines is what made those two bugs fixable at all,
+# so this codebase keeps doing it that way everywhere, not just where the
+# original bugs were.
+#
+# SC2015 (A && B || C is not if-then-else): used throughout only for
+# genuinely side-effect-free A (an `echo`), where C can never spuriously
+# run.
+disable=SC2181
+disable=SC2015

@@ -75,6 +75,7 @@ half-completed run before that happens.
 | `scripts/check-repo-settings.sh [repo]` | Read-only audit of repo settings (branch protection, teams, collaborators, security features) against the policy files and the GitHub-API-checkable subset of the [OSPS Baseline checklist](https://baseline.openssf.org/versions/2026-02-19-checklist.md) → `repo-settings-report.md` |
 | `scripts/fix-repo-settings.sh <repo> [--apply]` | Remediates one repo against the policy files. **Defaults to dry-run** — always review the diff before re-running with `--apply`. Only ever raises settings, never lowers an existing stricter one |
 | `scripts/fix-all-repos.sh [--apply]` | Runs `fix-repo-settings.sh` across every repo in `managed-repos.yaml`, one at a time, with a summary at the end. Same dry-run-by-default safety model — nothing here is new logic, just a loop |
+| `scripts/validate-policy.rb` | Static validation of the YAML policy files: every file parses, every managed repo has a `repo-tiers.yaml`/`componentowners-policy.yaml` entry, `class`/`subproject` values are from the documented enum, and every referenced team slug exists in `generated/teams.yaml`'s last snapshot. No GitHub API calls — safe to run in CI, and also runs there (`.github/workflows/lint.yml`, alongside ShellCheck on every script) |
 
 ## Adding a new repo
 
