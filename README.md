@@ -70,6 +70,7 @@ half-completed run before that happens.
 | Script | Effect |
 |---|---|
 | `scripts/bootstrap.sh` | Checks admin-team membership, clones any managed repo missing as a sibling |
+| `scripts/create-new-repo.sh --name <repo> --class <A\|B\|C> --subproject <...> --description "<text>" --owners user1,user2,... [--apply]` | Onboards a brand-new repo end-to-end — see "Adding a new repo" below |
 | `scripts/update-managed-repos.sh` | Rebuilds `generated/managed-repos.yaml` from live GitHub state |
 | `scripts/update-teams.sh` | Rebuilds `generated/teams.yaml` from live GitHub state |
 | `scripts/check-repo-settings.sh [repo]` | Read-only audit of repo settings (branch protection, teams, collaborators, security features) against the policy files and the GitHub-API-checkable subset of the [OSPS Baseline checklist](https://baseline.openssf.org/versions/2026-02-19-checklist.md) → `repo-settings-report.md` |
@@ -79,27 +80,43 @@ half-completed run before that happens.
 
 ## Adding a new repo
 
-`bootstrap.sh` only clones what's *already* in `generated/managed-repos.yaml`,
-and `update-managed-repos.sh` only *adds* a repo to that file once it's
-already cloned as a sibling with a verified `origin` remote — so for a
-genuinely new repo, one manual step has to break that cycle:
+`./scripts/create-new-repo.sh` does this end-to-end for a genuinely new
+repo — creates it on GitHub from `cnpg-template`, clones it as a sibling,
+registers it in `repo-tiers.yaml` and `componentowners-policy.yaml`,
+regenerates `generated/managed-repos.yaml`, creates and populates its
+`<repo>-owners` team, renders and pushes its real `CODEOWNERS`, brings it
+up to the settings baseline (`fix-repo-settings.sh`), runs
+`validate-policy.rb`, and opens a PR on `cloudnative-pg/.project` adding
+it to `project.yaml`'s `repositories:` list. Dry-run by default, like
+every other script here:
 
-1. If the repo doesn't exist on GitHub yet, create it:
-   `gh repo create cloudnative-pg/<name> ...`
-2. Clone it as a sibling of `cnpg-infra` — this is the step that breaks the
-   chicken-and-egg, nothing else can do it for you:
+```sh
+./scripts/create-new-repo.sh \
+  --name <repo> \
+  --class <A|B|C> \
+  --subproject <core|supply-chain|community-ecosystem|extensibility|org-control|unclassified> \
+  --description "<one-line GitHub description>" \
+  --owners user1,user2,...
+# review the plan, then:
+./scripts/create-new-repo.sh ... --apply
+```
+
+New entries are appended to the end of each policy file's `repositories:`
+list, not re-sorted into their class/alphabetical grouping — that's a
+human tidy-up afterward, if you want one.
+
+If the repo already exists on GitHub (an existing repo just joining
+`cnpg-infra`'s management rather than a genuinely new one), use the
+older manual path instead:
+
+1. Clone it as a sibling of `cnpg-infra`:
    `git clone https://github.com/cloudnative-pg/<name>.git`
-3. Run `./scripts/update-managed-repos.sh` — it'll now find the new sibling
+2. Run `./scripts/update-managed-repos.sh` — it'll now find the new sibling
    clone and add it to `generated/managed-repos.yaml`.
-4. Optionally add policy entries for it in `repo-policy.yaml` (if it needs
-   a settings exception) and `componentowners-policy.yaml` (its CODEOWNERS
-   ownership) — not required, but worth doing so it doesn't silently fall
-   back to bare defaults with no documented owner.
-5. Run `./scripts/fix-repo-settings.sh <name>` (dry-run first, review the
+3. Add policy entries for it in `repo-tiers.yaml` and
+   `componentowners-policy.yaml` by hand.
+4. Run `./scripts/fix-repo-settings.sh <name>` (dry-run first, review the
    diff, then `--apply`) to bring it up to the settings baseline.
-
-Everything after step 2 is automated; step 2 is the one part that has to
-happen by hand.
 
 ## Conventions
 
