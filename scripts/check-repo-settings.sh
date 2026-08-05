@@ -20,6 +20,13 @@
 #   ./check-repo-settings.sh <repo-name>  # audit a single repo (faster iteration)
 set -uo pipefail
 
+# gh colorizes JSON whenever CLICOLOR_FORCE is set, even writing into a pipe,
+# and every API response here is parsed by jq -- the ANSI escapes make jq fail
+# with "Invalid numeric literal" on every field, which turns the whole report
+# into false negatives rather than an error. NO_COLOR does not override
+# CLICOLOR_FORCE, so unset it outright for this script's own environment.
+unset CLICOLOR_FORCE
+
 ORG="cloudnative-pg"
 INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$INFRA_ROOT/generated/managed-repos.yaml"
@@ -30,6 +37,11 @@ OUTPUT="$INFRA_ROOT/repo-settings-report.md"
 
 command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1; }
 command -v jq >/dev/null 2>&1 || { echo "error: jq is required" >&2; exit 1; }
+# ruby is only needed to render the desired CODEOWNERS content to compare
+# each repo's real file against; without it every other check still runs and
+# the CODEOWNERS drift/owner-effectiveness lines report "unknown" instead.
+HAVE_RUBY=false
+command -v ruby >/dev/null 2>&1 && HAVE_RUBY=true
 [ -f "$MANIFEST" ] || { echo "error: $MANIFEST not found — run ./update-managed-repos.sh first" >&2; exit 1; }
 
 policy_category() { # $1 = repo name -> prints category, or "standard" if unlisted
@@ -148,6 +160,19 @@ contents_exists() { # $1 = path within repo, $2 = owner/repo
   [ "$code" = "200" ]
 }
 
+api_raw() { # $1 = contents api path -> prints the file body verbatim
+  gh api "$1" -H "Accept: application/vnd.github.raw" 2>/dev/null
+}
+
+# Prints every owner handle in a rendered CODEOWNERS body, one per line,
+# deduplicated. Comment and blank lines are dropped, and the first field of
+# a rule line is the pattern, not an owner.
+codeowners_handles() { # stdin = CODEOWNERS content
+  grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' \
+    | awk '{ for (i = 2; i <= NF; i++) print $i }' \
+    | sort -u
+}
+
 echo "Auditing ${#REPOS[@]} repositories under github.com/${ORG} ..." >&2
 
 # --- organization-level checks (apply to every repo, checked once) ---------
@@ -174,10 +199,11 @@ org_default_perm="$(echo "$org_json" | jq -r '.default_repository_permission // 
   echo "Full detail (team/collaborator lists, status-check names, per-repo OSPS table) is below the matrix, one section per repo."
   echo "🤖 in the Reviews column = repo is classified \`automated\` in [\`repo-policy.yaml\`](repo-policy.yaml); a low/zero review count there is expected, not a gap."
   echo "Merge cfg = how many of {squash merge, rebase merge, suggest-update-branch, delete-branch-on-merge, linear history, squash title = PR title, squash message = PR body} are on; full breakdown per repo below."
+  echo "CODEOWNERS = the real file matches what [\`componentowners-policy.yaml\`](componentowners-policy.yaml) renders, *and* every owner it names holds write access or better (GitHub silently assigns no code owner for one that doesn't). Per-repo detail says which of the two failed."
   echo "Class comes from [\`repo-tiers.yaml\`](repo-tiers.yaml): A = critical, B = important, C = low-stakes, n/a = org-control repo, ? = not yet classified."
   echo
-  echo "| Repo | Class | Public | Protected | Reviews | Owners | No force-push | No delete | Checks | Secrets | Push guard | Dependabot | Vuln alerts | LICENSE | Merge cfg |"
-  echo "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |"
+  echo "| Repo | Class | Public | Protected | Reviews | Owners | CODEOWNERS | No force-push | No delete | Checks | Secrets | Push guard | Dependabot | Vuln alerts | LICENSE | Merge cfg |"
+  echo "| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |"
 } > "$SUMMARY_TMP.header"
 
 # --- per-repo audit -----------------------------------------------------------
@@ -288,9 +314,91 @@ for repo in "${REPOS[@]}"; do
   [ $? -eq 0 ] || direct_json='[]'
   direct_list="$(echo "$direct_json" | jq -r '[.[] | "\(.login) (\(if .permissions.admin then "admin" elif .permissions.maintain then "maintain" elif .permissions.push then "push" elif .permissions.triage then "triage" else "read" end))"] | if length == 0 then "(none)" else join(", ") end')"
 
+  # --- CODEOWNERS: which file wins, does it match policy, can its owners
+  #     actually approve ---------------------------------------------------
+  #
+  # GitHub searches .github/, the root, then docs/ and uses the FIRST file it
+  # finds, ignoring the others outright. A repo with two of them therefore
+  # has a file that looks authoritative and gates nothing, which a plain
+  # "CODEOWNERS present: yes" can't distinguish -- hence the location list.
+  codeowners_locations=()
+  for candidate in ".github/CODEOWNERS" "CODEOWNERS" "docs/CODEOWNERS"; do
+    contents_exists "$candidate" "$full" && codeowners_locations+=("$candidate")
+  done
   codeowners_exists=false
-  if contents_exists "CODEOWNERS" "$full" || contents_exists ".github/CODEOWNERS" "$full"; then
+  codeowners_effective=""
+  if [ "${#codeowners_locations[@]}" -gt 0 ]; then
     codeowners_exists=true
+    codeowners_effective="${codeowners_locations[0]}"
+  fi
+
+  # Content drift against componentowners-policy.yaml's desired state. The
+  # renderer exits non-zero for a repo it has no entry for, or one flagged as
+  # a documented exception; both mean "no desired state to compare with"
+  # rather than a failure, so an empty render leaves drift as "unknown".
+  codeowners_drift=unknown
+  codeowners_expected=""
+  if [ "$codeowners_exists" = "true" ] && [ "$HAVE_RUBY" = "true" ]; then
+    codeowners_expected="$(ruby "$INFRA_ROOT/scripts/render-codeowners.rb" "$repo" 2>/dev/null)"
+    if [ -n "$codeowners_expected" ]; then
+      codeowners_actual="$(api_raw "repos/$full/contents/$codeowners_effective")"
+      # An empty body means the fetch failed (403, rate limit), not that the
+      # file is empty -- the location check above already proved it exists.
+      # Reporting that as drift would be a false alarm.
+      if [ -z "$codeowners_actual" ]; then
+        codeowners_drift=unknown
+      elif [ "$codeowners_actual" = "$codeowners_expected" ]; then
+        codeowners_drift=false
+      else
+        codeowners_drift=true
+      fi
+    fi
+  fi
+
+  # Owners that cannot actually approve anything. GitHub assigns no code
+  # owner at all for a team or user that doesn't exist or lacks write access,
+  # silently -- so a correct-looking rule can gate nothing. Team grants come
+  # from the repos/*/teams response already fetched above; individual owners
+  # need one call each, and only three repos name any.
+  #
+  # Both lookups fail open into codeowners_unmeasured rather than reporting an
+  # owner as powerless: api_json flattens any non-2xx to '{}', so a 403 from a
+  # token without org visibility would otherwise render every single owner as
+  # unable to approve -- a report full of alarming, entirely wrong findings.
+  codeowners_inert=()
+  codeowners_unmeasured=()
+  if [ -n "$codeowners_expected" ]; then
+    teams_parsed=false
+    [ "$(echo "$teams_json" | jq -r 'type' 2>/dev/null)" = "array" ] && teams_parsed=true
+    while read -r handle; do
+      [ -n "$handle" ] || continue
+      case "$handle" in
+        "@$ORG"/*)
+          slug="${handle#@"$ORG"/}"
+          if [ "$teams_parsed" != "true" ]; then
+            codeowners_unmeasured+=("$handle (repo team list unavailable)")
+            continue
+          fi
+          perm="$(echo "$teams_json" | jq -r --arg s "$slug" '.[] | select(.slug == $s) | .permission')"
+          case "$perm" in
+            admin | maintain | push) ;;
+            "") codeowners_inert+=("$handle (team has no grant on this repo, or does not exist)") ;;
+            *) codeowners_inert+=("$handle (\`$perm\` — below write)") ;;
+          esac
+          ;;
+        @*)
+          user="${handle#@}"
+          # This endpoint answers "none" for a real user with no access, so an
+          # empty value means the call itself failed, not that they lack it.
+          perm="$(api_json "repos/$full/collaborators/$user/permission" | jq -r '.permission // ""' 2>/dev/null)"
+          case "$perm" in
+            admin | maintain | write | push) ;;
+            "") codeowners_unmeasured+=("$handle (permission lookup failed)") ;;
+            *) codeowners_inert+=("$handle (\`$perm\` — below write)") ;;
+          esac
+          ;;
+      esac
+    done < <(echo "$codeowners_expected" | codeowners_handles)
   fi
 
   category="$(policy_category "$repo")"
@@ -329,14 +437,30 @@ for repo in "${REPOS[@]}"; do
   [ "$squash_title" = "PR_TITLE" ] && merge_cfg_score=$((merge_cfg_score + 1))
   [ "$squash_message" = "PR_BODY" ] && merge_cfg_score=$((merge_cfg_score + 1))
   merge_cfg_cell="$([ "$merge_cfg_score" -eq 7 ] && echo "✅7/7" || echo "⚠️${merge_cfg_score}/7")"
+  # One cell for three distinct failure modes, worst first: a file GitHub
+  # ignores outranks stale content, which outranks an owner who can't approve.
+  if [ "$codeowners_exists" != "true" ]; then
+    codeowners_cell="❌"
+  elif [ "${#codeowners_locations[@]}" -gt 1 ]; then
+    codeowners_cell="⚠️${#codeowners_locations[@]} files"
+  elif [ "$codeowners_drift" = "true" ]; then
+    codeowners_cell="⚠️drift"
+  elif [ "${#codeowners_inert[@]}" -gt 0 ]; then
+    codeowners_cell="⚠️inert"
+  elif [ "$codeowners_drift" = "false" ] && [ "${#codeowners_unmeasured[@]}" -eq 0 ]; then
+    codeowners_cell="✅"
+  else
+    codeowners_cell="❔"
+  fi
   {
-    printf '| [%s](#%s) | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
+    printf '| [%s](#%s) | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
       "$repo" "$(echo "$repo" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-')" \
       "$repo_class" \
       "$(icon "$([ "$visibility" = "public" ] && echo true || echo false)")" \
       "$(icon "$has_protection")" \
       "$reviews_cell" \
       "$(icon "$code_owner_review")" \
+      "$codeowners_cell" \
       "$(icon "$([ "$allow_force_pushes" = "false" ] && echo true || echo false)")" \
       "$(icon "$([ "$allow_deletions" = "false" ] && echo true || echo false)")" \
       "$([ "$status_checks_count" -ge 1 ] 2>/dev/null && echo "✅$status_checks_count" || echo "❌0")" \
@@ -364,7 +488,23 @@ for repo in "${REPOS[@]}"; do
     echo "- Teams: $teams_list"
     echo "- Outside collaborators (non-org members — review these first): $outside_list"
     echo "- Direct collaborators (repo-specific grant, bypasses team access): $direct_list"
-    echo "- CODEOWNERS present on default branch: $(icon "$codeowners_exists")"
+    echo "- CODEOWNERS present on default branch: $(icon "$codeowners_exists")$([ -n "$codeowners_effective" ] && echo " (\`$codeowners_effective\`)")"
+    if [ "${#codeowners_locations[@]}" -gt 1 ]; then
+      echo "  - ⚠️ **${#codeowners_locations[@]} CODEOWNERS files**: ${codeowners_locations[*]} — GitHub uses \`$codeowners_effective\` and ignores the rest; delete the others"
+    fi
+    case "$codeowners_drift" in
+      false) echo "  - Matches \`componentowners-policy.yaml\`: ✅" ;;
+      true) echo "  - Matches \`componentowners-policy.yaml\`: ❌ **drift** — regenerate with \`ruby scripts/render-codeowners.rb $repo\`" ;;
+      *) echo "  - Matches \`componentowners-policy.yaml\`: ❔ (no desired state rendered$([ "$HAVE_RUBY" != "true" ] && echo "; ruby not installed"))" ;;
+    esac
+    if [ "${#codeowners_inert[@]}" -gt 0 ]; then
+      echo "  - ⚠️ **Owners that cannot approve** (GitHub assigns no code owner for these, silently): ${codeowners_inert[*]}"
+    elif [ "${#codeowners_unmeasured[@]}" -eq 0 ] && [ -n "$codeowners_expected" ]; then
+      echo "  - Every owner named holds write access or better: ✅"
+    fi
+    if [ "${#codeowners_unmeasured[@]}" -gt 0 ]; then
+      echo "  - ❔ Owner access not verified (lookup failed, not a finding): ${codeowners_unmeasured[*]}"
+    fi
     echo
     echo "**Branch protection ($default_branch)** — combined view: classic protection OR any active branch ruleset, whichever is stricter per field"
     echo "- Protected: $(icon "$has_protection")$([ -n "$ruleset_names" ] && echo " (active branch ruleset(s): $ruleset_names)")"
