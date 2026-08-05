@@ -31,14 +31,19 @@
 # Sourced from governance/subprojects/*.md's Scope + Owners columns
 # (whole-repository AND path-scoped rows both included here, unlike the
 # old codeowners-policy.yaml which only tracked the whole-repo row).
-# `maintainers` is appended after the repo's own `<repo>-owners` team on
-# every `*` rule — governance's proposed subproject committees (core-
-# maintainers, supply-chain-maintainers, etc., see
-# governance/subprojects/README.md) aren't rolled out as real GitHub teams
-# yet, so `maintainers` is the fallback broad-access team until they are.
-# repo-tiers.yaml's `owners` field is what actually populates each
-# `<repo>-owners` team's membership — this file only references the team
-# by name.
+# Every `*` rule names the repo's own `<repo>-owners` team. The org-control
+# repos (.github, .project, cnpg-infra, cnpg-template, governance) add
+# `admins` after it, because they carry real org-administration capability
+# and have no subproject committee of their own; every other repo lists its
+# owners team alone. repo-tiers.yaml's `owners` field is what actually
+# populates each `<repo>-owners` team's membership — this file only
+# references the team by name.
+#
+# Governance's proposed subproject committees (core-maintainers,
+# supply-chain-maintainers, etc., see governance/subprojects/README.md) now
+# exist as real GitHub teams, but with placeholder membership pending
+# ratification, so they are referenced only by the governance repo's
+# path-scoped rules — not as a broad-access fallback on any `*` rule.
 #
 # note: present on a rule where governance documents no owner at all for
 # that scope — a real, flagged gap, not an oversight in this file.
@@ -47,7 +52,7 @@
 # (.github, .project, cnpg-infra) — no more no-owner exceptions. .github
 # and .project used to have none at all (only the 7 org owners could
 # administer them); now each gets its own <repo>-owners team like every
-# other repo, falling back to maintainers. Revisit the fallback once the
+# other repo, falling back to admins. Revisit the fallback once the
 # steering-committee team (planned to own governance/.project/.github,
 # see governance/subprojects/README.md) is rolled out.
 
@@ -57,7 +62,7 @@ repositories:
       - path: "*"
         teams: [github-owners, admins]
         users: []
-        note: "Until the steering-committee team (see governance/subprojects/README.md) is rolled out, maintainers is the fallback broad-access team, same as every other org-control repo without a subproject committee of its own."
+        note: "Until the steering-committee team (see governance/subprojects/README.md) is rolled out, admins is the fallback broad-access team, same as every other org-control repo without a subproject committee of its own."
   - name: .project
     rules:
       - path: "*"
