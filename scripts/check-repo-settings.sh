@@ -20,6 +20,13 @@
 #   ./check-repo-settings.sh <repo-name>  # audit a single repo (faster iteration)
 set -uo pipefail
 
+# gh colorizes JSON whenever CLICOLOR_FORCE is set, even writing into a pipe,
+# and every API response here is parsed by jq -- the ANSI escapes make jq fail
+# with "Invalid numeric literal" on every field, which turns the whole report
+# into false negatives rather than an error. NO_COLOR does not override
+# CLICOLOR_FORCE, so unset it outright for this script's own environment.
+unset CLICOLOR_FORCE
+
 ORG="cloudnative-pg"
 INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$INFRA_ROOT/generated/managed-repos.yaml"
