@@ -216,7 +216,7 @@ repositories:
     subproject: community-ecosystem
     reason: "The public project website."
     description: "CloudNativePG website"
-    owners: [gbartolini, jsilvela, FloorD, mnencia, leonardoce, fcanovai]
+    owners: [gbartolini, FloorD, mnencia, leonardoce, fcanovai]
   - name: grafana-dashboards
     class: B
     subproject: community-ecosystem

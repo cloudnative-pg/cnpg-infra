@@ -120,13 +120,13 @@ repositories:
         note: "No whole-repo owner beyond the maintainer committee documented in governance/subprojects/core.md — only the three path-scoped rows below are documented."
       - path: "/docs/"
         teams: [cloudnative-pg-owners]
-        users: [jsilvela]
+        users: []
       - path: "/config/olm-*/"
         teams: [cloudnative-pg-owners]
         users: [NiccoloFei]
       - path: "/.github/ /hack/ /tests/"
         teams: [cloudnative-pg-owners]
-        users: [NiccoloFei, litaocdl, jsilvela]
+        users: [NiccoloFei, litaocdl]
         note: "Governance documents this as one combined 'Testing' scope covering all three paths, not three separate rows; split into three CODEOWNERS lines with identical owners when generating the real file."
   - name: cloudnative-pg.github.io
     rules:
