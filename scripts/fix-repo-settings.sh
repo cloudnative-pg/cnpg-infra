@@ -454,7 +454,15 @@ new_ruleset_body="$(jq -n \
             dismiss_stale_reviews_on_push: $dismiss_stale,
             require_code_owner_review: $code_owner,
             require_last_push_approval: $last_push,
-            required_review_thread_resolution: false
+            required_review_thread_resolution: false,
+            # A real merge commit can never actually land regardless (see
+            # required_linear_history above, forced unconditionally on
+            # every repo) -- but GitHub does not infer that on its own:
+            # this ruleset field defaults to allowing all three merge
+            # methods when left unset, so "Merge" stayed listed as a
+            # selectable option in the UI even though clicking it would
+            # just fail. Restrict it explicitly to match reality.
+            allowed_merge_methods: ["squash", "rebase"]
           }}]
         else [] end)
       + (if ($status_checks | length) > 0 then

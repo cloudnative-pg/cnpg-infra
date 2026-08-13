@@ -48,6 +48,7 @@ files = {
   componentowners: File.join(INFRA_ROOT, "componentowners-policy.yaml"),
   org_policy: File.join(INFRA_ROOT, "org-policy.yaml"),
   repo_policy: File.join(INFRA_ROOT, "repo-policy.yaml"),
+  milestones_policy: File.join(INFRA_ROOT, "milestones-policy.yaml"),
 }
 
 files.each_value { |path| errors << "#{path}: file not found" unless File.file?(path) }
@@ -107,6 +108,16 @@ if errors.empty?
     next if known_team_slugs.include?(slug)
 
     errors << "#{source}: references team '#{slug}', which is not in generated/teams.yaml's last snapshot (typo, or teams.yaml needs a refresh via scripts/update-teams.sh)"
+  end
+
+  # --- check 5: every repo referenced in milestones-policy.yaml is managed ---
+  data[:milestones_policy].fetch("milestones", []).each do |m|
+    title = m["title"]
+    Array(m["repos"]).each do |repo|
+      next if managed_repo_names.include?(repo)
+
+      errors << "milestones-policy.yaml (#{title}): references repo '#{repo}', which is not in generated/managed-repos.yaml (typo, or the repo isn't cloned/managed here)"
+    end
   end
 end
 

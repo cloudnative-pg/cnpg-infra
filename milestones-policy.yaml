@@ -1,0 +1,120 @@
+# Hand-maintained desired-state list of "horizon" milestones (Now / Next /
+# Later) that should exist, verbatim, in a hand-picked set of repos --
+# mirroring cloudnative-pg/cloudnative-pg's own generic triage milestones
+# (https://github.com/cloudnative-pg/cloudnative-pg/milestone/36, /31, /37
+# respectively) so issues elsewhere in the org can use the same
+# Now/Next/Later horizon convention instead of each repo inventing its own.
+#
+# title + description are copied verbatim from cloudnative-pg's milestones
+# (fetched via `gh api repos/cloudnative-pg/cloudnative-pg/milestones/<n>`
+# on 2026-08-12) so the convention reads identically everywhere -- do not
+# reword them here without also updating the source milestones, or the two
+# will drift.
+#
+# `repos:` is an explicit, hand-picked list -- not "every managed repo" and
+# not driven mechanically off repo-tiers.yaml's class, though class A/B was
+# the starting signal. Deliberately excludes:
+#   - org-control repos (.github, .project, governance, cnpg-infra,
+#     cnpg-template) -- no product roadmap to horizon-plan.
+#   - repo-policy.yaml's category: automated mirror repos (docs, api,
+#     artifacts) -- their content, and so their roadmap, is authored
+#     upstream in cloudnative-pg itself, not triaged independently here.
+#   - class C repos -- small/infra/template/playground repos where a
+#     3-tier planning horizon is overkill (chaos-testing and
+#     postgres-keycloak-oauth-validator were the closest borderline calls
+#     if this ever needs revisiting).
+# Same 15 repos for all three milestones as of this writing; nothing
+# requires that to stay true -- add/remove per-milestone if a repo only
+# needs some of the three.
+#
+# Nothing regenerates this file -- edit by hand, then run
+# `ruby scripts/sync-milestones.rb [--apply]` to reconcile GitHub to
+# match. Milestones are matched by exact title; open/closed state and
+# issue assignments are left untouched -- title, description, and due
+# date are reconciled.
+#
+# `due_offset_months` is not a fixed date -- sync-milestones.rb computes a
+# ROLLING due date from it every time it runs: today + that many months,
+# rolled forward to the 1st of the following month (e.g. run on
+# 2026-08-13 with offset 3 -> 2026-12-01). So due dates advance on their
+# own each time the script is next run in a new calendar month; there is
+# nothing to edit here to "renew" them. Values below (3/9/18) keep the
+# same Now/Next/Later horizon proportions as cloudnative-pg's own
+# milestones (0-3 / 3-9 / 9+ months out).
+
+milestones:
+  - title: "Now"
+    source: https://github.com/cloudnative-pg/cloudnative-pg/milestone/36
+    due_offset_months: 3
+    description: >-
+      **Generic milestone:** The current time frame extends from now to
+      three months. Any issues identified will likely be addressed in the
+      upcoming maintenance releases. Features, on the other hand, will be
+      included in the next minor release (the current minor version plus
+      one). Once completed, the issues in this milestone must be
+      transferred to the appropriate milestone for the version that
+      includes the corresponding pull requests and commits.
+    repos:
+      - cloudnative-pg
+      - charts
+      - postgres-containers
+      - postgres-extensions-containers
+      - pgbouncer-containers
+      - machinery
+      - barman-cloud
+      - cnpg-i
+      - cnpg-i-machinery
+      - plugin-barman-cloud
+      - klio
+      - postgis-containers
+      - daggerverse
+      - cloudnative-pg.github.io
+      - grafana-dashboards
+  - title: "Next"
+    source: https://github.com/cloudnative-pg/cloudnative-pg/milestone/31
+    due_offset_months: 9
+    description: >-
+      **Generic milestone:** Next time horizon ranges from 3 to 9 months.
+      Issues will likely be addressed in future minor releases (current
+      minor + 2 and beyond).
+    repos:
+      - cloudnative-pg
+      - charts
+      - postgres-containers
+      - postgres-extensions-containers
+      - pgbouncer-containers
+      - machinery
+      - barman-cloud
+      - cnpg-i
+      - cnpg-i-machinery
+      - plugin-barman-cloud
+      - klio
+      - postgis-containers
+      - daggerverse
+      - cloudnative-pg.github.io
+      - grafana-dashboards
+  - title: "Later"
+    source: https://github.com/cloudnative-pg/cloudnative-pg/milestone/37
+    due_offset_months: 18
+    description: >-
+      **Generic Milestone:** The next time horizon extends beyond 9
+      months. This category mainly includes features and ideas that have
+      not yet been broken down into smaller, incremental batches. There is
+      no commitment regarding their realisation or inclusion in any
+      upcoming minor releases.
+    repos:
+      - cloudnative-pg
+      - charts
+      - postgres-containers
+      - postgres-extensions-containers
+      - pgbouncer-containers
+      - machinery
+      - barman-cloud
+      - cnpg-i
+      - cnpg-i-machinery
+      - plugin-barman-cloud
+      - klio
+      - postgis-containers
+      - daggerverse
+      - cloudnative-pg.github.io
+      - grafana-dashboards
