@@ -167,7 +167,7 @@ repositories:
     reason: "Release automation (version bumps, tagging) needs to push directly to main and merge without waiting on human review."
     ruleset_bypass_teams: [bots]
   - name: charts
-    reason: "Chart release automation (version bumps, packaging) needs to push directly to main and merge without waiting on human review; also opted out of release immutability since that same automation overwrites/recreates release tags."
+    reason: "Chart release automation (version bumps, packaging) needs to push directly to main and merge without waiting on human review; also opted out of release immutability since that same automation overwrites/recreates release tags. Separately, itay-grudev (GitHub user id 2123767) was added as a ruleset bypass_actor directly on GitHub on 2026-08-06, per Gabriele, since charts only has one other active reviewer right now -- temporary until more reviewers are added to the project in the next few days, at which point this bypass should be removed. Not tracked as a ruleset_bypass_teams-style policy field here (this mechanism is team-only today), so fix-repo-settings.sh does not manage it -- it will persist untouched (bypass_actors are only ever added to, never removed, by that script) until removed by hand."
     ruleset_bypass_teams: [bots]
     immutable_releases: false
   - name: klio
