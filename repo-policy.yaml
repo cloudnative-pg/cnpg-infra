@@ -46,9 +46,10 @@
 #   publishes releases normally, and a no-op for one that has none. Once
 #   set, fix-repo-settings.sh leaves the repo's actual setting alone
 #   (never forces it back on) rather than fighting a deliberate exception.
-#   Not currently used by any repo — checked every repo's real release
-#   history first and found no rolling/overwritten release pattern
-#   anywhere that would need this. GitHub's API for this setting has no
+#   Used by cloudnative-pg, charts, klio, plugin-barman-cloud, and
+#   grafana-dashboards — each one's release automation overwrites or
+#   recreates a release/tag as part of its normal process, which
+#   immutability would break. GitHub's API for this setting has no
 #   per-team bypass (unlike ruleset bypass_actors) — it is a plain
 #   per-repo on/off toggle, so this field is the only exception lever
 #   available at all.
@@ -137,11 +138,12 @@ repositories:
     reason: "Generated manifests/checksums/catalogs are published by automation, not authored PR-by-PR; see repo-tiers.yaml for why this repo is nonetheless class A."
     ruleset_bypass_teams: [bots]
   - name: plugin-barman-cloud
-    reason: "Pages config only — review requirements now come from repo-tiers.yaml's class instead of a standalone override here."
+    reason: "Pages config, plus opted out of release immutability — its release automation overwrites/recreates tags or releases, which immutability would break; review requirements come from repo-tiers.yaml's class instead of a standalone override here."
     pages_enabled: true
     pages_build_type: workflow
     pages_branch: main
     pages_path: /
+    immutable_releases: false
   - name: cloudnative-pg.github.io
     reason: "The cloudnative-pg.io landing site — served via legacy (branch-based) Pages from gh-pages, built by hugo_build.yml using peaceiris/actions-gh-pages, unlike docs/ and plugin-barman-cloud which use the newer Actions-workflow Pages build type."
     pages_enabled: true
@@ -165,5 +167,15 @@ repositories:
     reason: "Release automation (version bumps, tagging) needs to push directly to main and merge without waiting on human review."
     ruleset_bypass_teams: [bots]
   - name: charts
-    reason: "Chart release automation (version bumps, packaging) needs to push directly to main and merge without waiting on human review."
+    reason: "Chart release automation (version bumps, packaging) needs to push directly to main and merge without waiting on human review; also opted out of release immutability since that same automation overwrites/recreates release tags."
     ruleset_bypass_teams: [bots]
+    immutable_releases: false
+  - name: klio
+    reason: "Release automation overwrites/recreates tags or releases as part of its normal process; release immutability would break that."
+    immutable_releases: false
+  - name: cloudnative-pg
+    reason: "Release automation overwrites/recreates tags or releases as part of its normal process; release immutability would break that."
+    immutable_releases: false
+  - name: grafana-dashboards
+    reason: "Release automation overwrites/recreates tags or releases as part of its normal process; release immutability would break that."
+    immutable_releases: false
