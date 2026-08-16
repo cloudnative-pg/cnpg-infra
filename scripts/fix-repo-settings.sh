@@ -100,6 +100,16 @@
 #   ./fix-repo-settings.sh <repo-name> --apply    # actually apply the changes
 set -uo pipefail
 
+# gh colorizes JSON whenever CLICOLOR_FORCE or GH_FORCE_TTY is set, even
+# writing into a pipe, and every API response here is parsed by jq -- the
+# ANSI escapes make jq fail with "Invalid numeric literal" on every field.
+# For this script that's not just a misreported audit, it's a wrong
+# precondition (e.g. has_admin) on the one script that writes real,
+# shared GitHub state. NO_COLOR does not override either one, so unset
+# both outright for this script's own environment.
+unset CLICOLOR_FORCE
+unset GH_FORCE_TTY
+
 ORG="cloudnative-pg"
 INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$INFRA_ROOT/generated/managed-repos.yaml"

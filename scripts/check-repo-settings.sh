@@ -20,12 +20,14 @@
 #   ./check-repo-settings.sh <repo-name>  # audit a single repo (faster iteration)
 set -uo pipefail
 
-# gh colorizes JSON whenever CLICOLOR_FORCE is set, even writing into a pipe,
-# and every API response here is parsed by jq -- the ANSI escapes make jq fail
-# with "Invalid numeric literal" on every field, which turns the whole report
-# into false negatives rather than an error. NO_COLOR does not override
-# CLICOLOR_FORCE, so unset it outright for this script's own environment.
+# gh colorizes JSON whenever CLICOLOR_FORCE or GH_FORCE_TTY is set, even
+# writing into a pipe, and every API response here is parsed by jq -- the
+# ANSI escapes make jq fail with "Invalid numeric literal" on every field,
+# which turns the whole report into false negatives rather than an error.
+# NO_COLOR does not override either one, so unset both outright for this
+# script's own environment.
 unset CLICOLOR_FORCE
+unset GH_FORCE_TTY
 
 ORG="cloudnative-pg"
 INFRA_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -342,6 +344,7 @@ for repo in "${REPOS[@]}"; do
   # rather than a failure, so an empty render leaves drift as "unknown".
   codeowners_drift=unknown
   codeowners_expected=""
+  codeowners_actual=""
   if [ "$codeowners_exists" = "true" ] && [ "$HAVE_RUBY" = "true" ]; then
     codeowners_expected="$(ruby "$INFRA_ROOT/scripts/render-codeowners.rb" "$repo" 2>/dev/null)"
     if [ -n "$codeowners_expected" ]; then
@@ -351,7 +354,10 @@ for repo in "${REPOS[@]}"; do
       # Reporting that as drift would be a false alarm.
       if [ -z "$codeowners_actual" ]; then
         codeowners_drift=unknown
-      elif [ "$codeowners_actual" = "$codeowners_expected" ]; then
+      # Normalize CRLF and trailing per-line whitespace before comparing --
+      # otherwise an incidental line-ending difference reports as drift
+      # even when every owner is identical.
+      elif [ "$(echo "$codeowners_actual" | tr -d '\r' | sed 's/[[:space:]]*$//')" = "$(echo "$codeowners_expected" | tr -d '\r' | sed 's/[[:space:]]*$//')" ]; then
         codeowners_drift=false
       else
         codeowners_drift=true
@@ -365,13 +371,20 @@ for repo in "${REPOS[@]}"; do
   # from the repos/*/teams response already fetched above; individual owners
   # need one call each, and only three repos name any.
   #
+  # Deliberately checks codeowners_actual (the live file GitHub is really
+  # enforcing right now), not codeowners_expected (the desired policy
+  # content) -- on a repo with drift, those name different owners, and
+  # it's the live file's owners whose ability to approve actually matters.
+  # Checking the desired file instead would report "every owner can
+  # approve" using data that isn't what's actually gating reviews.
+  #
   # Both lookups fail open into codeowners_unmeasured rather than reporting an
   # owner as powerless: api_json flattens any non-2xx to '{}', so a 403 from a
   # token without org visibility would otherwise render every single owner as
   # unable to approve -- a report full of alarming, entirely wrong findings.
   codeowners_inert=()
   codeowners_unmeasured=()
-  if [ -n "$codeowners_expected" ]; then
+  if [ -n "$codeowners_actual" ]; then
     teams_parsed=false
     [ "$(echo "$teams_json" | jq -r 'type' 2>/dev/null)" = "array" ] && teams_parsed=true
     while read -r handle; do
@@ -402,7 +415,7 @@ for repo in "${REPOS[@]}"; do
           esac
           ;;
       esac
-    done < <(echo "$codeowners_expected" | codeowners_handles)
+    done < <(echo "$codeowners_actual" | codeowners_handles)
   fi
 
   category="$(policy_category "$repo")"
@@ -500,11 +513,17 @@ for repo in "${REPOS[@]}"; do
     case "$codeowners_drift" in
       false) echo "  - Matches \`componentowners-policy.yaml\`: ✅" ;;
       true) echo "  - Matches \`componentowners-policy.yaml\`: ❌ **drift** — regenerate with \`ruby scripts/render-codeowners.rb $repo\`" ;;
-      *) echo "  - Matches \`componentowners-policy.yaml\`: ❔ (no desired state rendered$([ "$HAVE_RUBY" != "true" ] && echo "; ruby not installed"))" ;;
+      *)
+        if [ -z "$codeowners_expected" ]; then
+          echo "  - Matches \`componentowners-policy.yaml\`: ❔ (no desired state rendered$([ "$HAVE_RUBY" != "true" ] && echo "; ruby not installed"))"
+        else
+          echo "  - Matches \`componentowners-policy.yaml\`: ❔ (desired state rendered, but fetching the live file failed — retry)"
+        fi
+        ;;
     esac
     if [ "${#codeowners_inert[@]}" -gt 0 ]; then
       echo "  - ⚠️ **Owners that cannot approve** (GitHub assigns no code owner for these, silently): ${codeowners_inert[*]}"
-    elif [ "${#codeowners_unmeasured[@]}" -eq 0 ] && [ -n "$codeowners_expected" ]; then
+    elif [ "${#codeowners_unmeasured[@]}" -eq 0 ] && [ -n "$codeowners_actual" ]; then
       echo "  - Every owner named holds write access or better: ✅"
     fi
     if [ "${#codeowners_unmeasured[@]}" -gt 0 ]; then

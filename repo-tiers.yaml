@@ -75,9 +75,11 @@
 # componentowners-policy.yaml, which no longer carries individual names for
 # any repo with an owners team) to create the team if it doesn't exist and
 # reconcile its membership — adding anyone missing, removing anyone no
-# longer listed here. Omit the field (or leave it empty) for a repo with no
-# dedicated owners team; it'll keep relying on componentowners-policy.yaml's
-# other teams (typically `maintainers`) instead.
+# longer listed here. Every managed repo has one today, so in practice the
+# field is never actually omitted; a repo without one would fall back to
+# whatever other teams componentowners-policy.yaml lists for it (`admins`
+# for the org-control repos — there is no `maintainers` team anymore, it
+# was deleted org-wide once every repo had its own owners team).
 #
 # Fields:
 #   name:        repo name, must match an entry in managed-repos.yaml

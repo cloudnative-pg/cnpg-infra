@@ -95,7 +95,7 @@ if errors.empty?
   data[:componentowners].fetch("repositories", []).each do |entry|
     next if entry["exception"]
 
-    entry.fetch("rules", []).each do |rule|
+    Array(entry["rules"]).each do |rule|
       Array(rule["teams"]).each { |t| referenced_teams << ["componentowners-policy.yaml (#{entry['name']}, #{rule['path']})", t] }
     end
   end
@@ -127,7 +127,11 @@ if errors.empty?
   data[:componentowners].fetch("repositories", []).each do |entry|
     next if entry["exception"]
 
-    paths = entry.fetch("rules", []).map { |r| r["path"] }
+    # Array(), not #fetch("rules", []): a "rules:" key present but empty
+    # (nil, a plausible typo) fails #fetch's default substitution -- fetch
+    # only falls back when the key is absent, not when it maps to nil --
+    # and .map on nil raises instead of producing the intended error below.
+    paths = Array(entry["rules"]).map { |r| r["path"] }
 
     if paths.empty?
       errors << "componentowners-policy.yaml: #{entry['name']}: has no rules at all"
@@ -135,6 +139,8 @@ if errors.empty?
       errors << "componentowners-policy.yaml: #{entry['name']}: has no '*' rule, so the repo would be left with no general owners"
     elsif paths.first != "*"
       errors << "componentowners-policy.yaml: #{entry['name']}: the '*' rule must come first, but #{paths.first.inspect} does -- a '*' rendered after path-scoped rules overrides all of them"
+    elsif paths.count("*") > 1
+      errors << "componentowners-policy.yaml: #{entry['name']}: has #{paths.count('*')} '*' rules -- render-codeowners.rb emits one line per rule in file order, so a later '*' silently overrides every path-scoped rule above it"
     end
   end
 
