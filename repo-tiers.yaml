@@ -192,7 +192,7 @@ repositories:
     subproject: extensibility
     reason: "A backup and recovery solution compliant with CNPG-I — same data-safety stakes as plugin-barman-cloud, same reasoning for class B over A."
     description: "Multi-Tiered Backup and Recovery Plugin for CloudNativePG"
-    owners: [fcanovai, leonardoce, armru, mnencia, gbartolini, gabriele-wolfox, jbattiato, NiccoloFei, GabriFedi97, jlong49]
+    owners: [fcanovai, leonardoce, gabriele-wolfox, GabriFedi97]
   - name: postgis-containers
     class: B
     subproject: supply-chain
@@ -216,7 +216,7 @@ repositories:
     subproject: community-ecosystem
     reason: "The public project website."
     description: "CloudNativePG website"
-    owners: [gbartolini, jsilvela, FloorD, mnencia, leonardoce, fcanovai]
+    owners: [gbartolini, FloorD, mnencia, leonardoce, fcanovai]
   - name: grafana-dashboards
     class: B
     subproject: community-ecosystem

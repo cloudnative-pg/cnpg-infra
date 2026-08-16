@@ -22,6 +22,8 @@
 #      ownersa" and "admin" (singular) instead of "admins".
 #   5. Every componentowners-policy.yaml entry has a "*" rule, and that
 #      rule comes first.
+#   6. Every repo referenced in milestones-policy.yaml is one this
+#      workspace actually manages (generated/managed-repos.yaml).
 #
 # Check 4 is only as fresh as generated/teams.yaml's last regeneration
 # (scripts/update-teams.sh) -- a team created on GitHub but not yet synced
@@ -50,6 +52,7 @@ files = {
   componentowners: File.join(INFRA_ROOT, "componentowners-policy.yaml"),
   org_policy: File.join(INFRA_ROOT, "org-policy.yaml"),
   repo_policy: File.join(INFRA_ROOT, "repo-policy.yaml"),
+  milestones_policy: File.join(INFRA_ROOT, "milestones-policy.yaml"),
 }
 
 files.each_value { |path| errors << "#{path}: file not found" unless File.file?(path) }
@@ -132,6 +135,16 @@ if errors.empty?
       errors << "componentowners-policy.yaml: #{entry['name']}: has no '*' rule, so the repo would be left with no general owners"
     elsif paths.first != "*"
       errors << "componentowners-policy.yaml: #{entry['name']}: the '*' rule must come first, but #{paths.first.inspect} does -- a '*' rendered after path-scoped rules overrides all of them"
+    end
+  end
+
+  # --- check 6: every repo referenced in milestones-policy.yaml is managed ---
+  data[:milestones_policy].fetch("milestones", []).each do |m|
+    title = m["title"]
+    Array(m["repos"]).each do |repo|
+      next if managed_repo_names.include?(repo)
+
+      errors << "milestones-policy.yaml (#{title}): references repo '#{repo}', which is not in generated/managed-repos.yaml (typo, or the repo isn't cloned/managed here)"
     end
   end
 end
