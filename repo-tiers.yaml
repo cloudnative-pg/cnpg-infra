@@ -244,7 +244,7 @@ repositories:
     subproject: supply-chain
     reason: "CI reporting tool."
     description: "ciclops (CI-clops) is a GitHub Action that summarizes the result of a Test Suite executed in a series of \"strategy matrix\" branches, and helps orient investigations when tests fail."
-    owners: [jsilvela, NiccoloFei]
+    owners: [jsilvela, NiccoloFei, mnencia]
   - name: github-test
     class: C
     subproject: supply-chain
