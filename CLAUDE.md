@@ -32,9 +32,10 @@ state that state gets reconciled against.
     repo gets an entry, since every repo has some class and some owners.
   - `componentowners-policy.yaml` — desired CODEOWNERS content per repo:
     an ordered list of `path` rules, each with `teams`/`users`. This is
-    the source of truth `check-repo-settings.sh` and the (proposed)
-    CODEOWNERS renderer check/generate against — it does **not** carry
-    per-team membership; that lives in `repo-tiers.yaml`'s `owners:`.
+    the source of truth `check-repo-settings.sh` audits against and
+    `scripts/render-codeowners.rb <repo>` renders to stdout as real
+    CODEOWNERS file content — it does **not** carry per-team membership;
+    that lives in `repo-tiers.yaml`'s `owners:`.
   - `org-policy.yaml` — rules identical across every repo instead of
     repeated 32 times: `global_admin_teams` (`admins`) and
     `global_maintain_teams` (`bots`) get that floor permission granted on
@@ -89,13 +90,30 @@ in the same pass as adding them to a team unless `is_active_org_member()`
 confirms they're already active — otherwise they lose real access for
 however long the invite sits unaccepted.
 
+## Landing a rendered CODEOWNERS file in a target repo
+
+`scripts/render-codeowners.rb <repo>` only prints the desired content —
+it never touches the target repo's clone or GitHub state. To actually
+land it: write the output to `<repo>/CODEOWNERS`, commit, and open a PR
+in *that* repo (DCO sign-off, Conventional Commit, `Assisted-by:`
+trailer). Unlike `cnpg-infra` itself, a target repo normally has no
+PR-bypass exception, so don't push straight to its default branch even
+though `cnpg-infra`'s own workflow does that for its own changes — see
+"cnpg-infra's own repo is a deliberate exception" below; that exception
+is scoped to this repo alone.
+
 ## Branch protection: rulesets only, not classic protection
 
 Every managed repo now enforces its default branch via a GitHub Ruleset
 named after that branch (e.g. `main`), not classic branch protection —
-classic protection was found to silently ignore writes to
-`allow_force_pushes` on at least one real repo, and as of this migration
-no managed repo has classic protection active anymore.
+**don't assume that branch is `main`**: `fix-repo-settings.sh` reads the
+repo's actual default branch and names/targets the ruleset accordingly
+(`kopia`'s default branch is `klio`, so its ruleset is named `klio`, not
+`main` — check `default_branch` before reasoning about "the main
+ruleset" for any given repo). Classic branch protection was found to
+silently ignore writes to `allow_force_pushes` on at least one real
+repo, and as of this migration no managed repo has classic protection
+active anymore.
 `fix-repo-settings.sh` only ever raises the floor (required reviews,
 code-owner review, force-push/deletion block, linear history) and never
 lowers an existing stricter value; it also now force-creates the ruleset
@@ -147,3 +165,51 @@ security cleanup without checking with Gabriele first.
   never use it to default a boolean; use
   `if . == null then <default> else . end` instead. This bug once made
   `fix-repo-settings.sh` silently flip a real `false` back to `true`.
+
+## In-flight work (as of 2026-09-07) — resume from here
+
+Snapshot of an onboarding effort in progress, kept here only until it's
+fully wrapped up — trim this section once everything below is resolved.
+
+**Done:**
+- Onboarded two external forks that weren't previously managed at all:
+  `community-operators` (fork of `k8s-operatorhub/community-operators`)
+  and `kopia` (fork of `kopia/kopia`, default branch `klio`, not `main`
+  — see the branch-protection section above). Both cloned as siblings,
+  added to `generated/managed-repos.yaml`, classified class C /
+  subproject `unclassified` in `repo-tiers.yaml`, given a `*` CODEOWNERS
+  rule in `componentowners-policy.yaml`, and given a `<repo>-owners`
+  team (`community-operators-owners`, `kopia-owners`) seeded with the 5
+  current CNPG maintainers (`armru`, `fcanovai`, `gbartolini`,
+  `leonardoce`, `mnencia` — from `governance/MAINTAINERS.md`), plus
+  `gabriele-wolfox` (Gabriele Quaresima) on `kopia-owners` specifically.
+  Both repos' branch rulesets were raised to the class-C floor via
+  `fix-repo-settings.sh --apply` and verified clean via
+  `check-repo-settings.sh`. All policy-file changes committed and pushed
+  directly to this repo's `main` (commit `20073b2`).
+- Rendered and landed a basic CODEOWNERS file (`* @cloudnative-pg/klio-owners`)
+  in `klio` via `render-codeowners.rb` — open as
+  [cloudnative-pg/klio#239](https://github.com/cloudnative-pg/klio/pull/239),
+  not yet merged.
+
+**Not done yet — pick back up here:**
+- `community-operators` and `kopia` themselves still have no real
+  `CODEOWNERS` file on their default branch (confirmed by
+  `check-repo-settings.sh`'s audit) — same treatment as `klio` above
+  (`render-codeowners.rb <repo>` → write → branch → PR) still needs
+  doing for both.
+- **Known drift, decision already made, not yet applied**: GitHub user
+  `jlong49` (John Long) is an active member of the `klio-owners` team
+  live on GitHub but is missing from `repo-tiers.yaml`'s `owners:` list
+  for `klio` (currently `[fcanovai, leonardoce, gabriele-wolfox,
+  GabriFedi97]`) — confirmed via a `sync-project-owner-teams.sh klio`
+  dry-run, which would otherwise remove him on the next `--apply` (see
+  "authoritative desired state, not just a floor" above). Gabriele
+  confirmed he belongs there: add `jlong49` to that `owners:` list in
+  `repo-tiers.yaml` and commit/push — no GitHub-side change needed, he
+  already has the access; this is purely a policy-file catch-up.
+- Neither `community-operators` nor `kopia` has a `LICENSE` file
+  detectable by `check-repo-settings.sh` on their default branch — worth
+  a look, but not something this tooling can create on its own (an
+  external fork's LICENSE is a legal/upstream question, not a settings
+  gap).
