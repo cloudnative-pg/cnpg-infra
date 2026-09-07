@@ -287,3 +287,18 @@ repositories:
     reason: "Experimental — per Gabriele, moved from class B."
     description: "A PostgreSQL module for OAuth2/Keycloak token validation."
     owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, y-tabata]
+  - name: cnpg-headlamp-plugin
+    class: C
+    subproject: community-ecosystem
+    description: "Headlamp plugin for CloudNativePG"
+    owners: [TamaraNocentini]
+  - name: community-operators
+    class: C
+    subproject: unclassified
+    reason: "External fork of k8s-operatorhub/community-operators used to publish the operator to OperatorHub.io — not org-authored runtime code, and not yet reflected in any governance/subprojects/*.md listing."
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
+  - name: kopia
+    class: C
+    subproject: unclassified
+    reason: "External fork of kopia/kopia (deduplication engine klio depends on) — not org-authored runtime code, and not yet reflected in any governance/subprojects/*.md listing. Note: this fork's default branch is 'klio', not 'main'."
+    owners: [armru, fcanovai, gbartolini, leonardoce, mnencia, gabriele-wolfox]

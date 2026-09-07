@@ -275,3 +275,20 @@ repositories:
       - path: "*"
         teams: [webtest-owners]
         users: []
+  - name: cnpg-headlamp-plugin
+    rules:
+      - path: "*"
+        teams: [cnpg-headlamp-plugin-owners]
+        users: []
+  - name: community-operators
+    rules:
+      - path: "*"
+        teams: [community-operators-owners]
+        users: []
+        note: "External fork (of k8s-operatorhub/community-operators) newly brought under cnpg-infra management; no owner documented in governance/subprojects/*.md."
+  - name: kopia
+    rules:
+      - path: "*"
+        teams: [kopia-owners]
+        users: []
+        note: "External fork (of kopia/kopia) newly brought under cnpg-infra management; no owner documented in governance/subprojects/*.md. Default branch is 'klio', not 'main'."
