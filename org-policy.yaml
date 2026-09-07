@@ -40,6 +40,28 @@ global_admin_teams:
 global_maintain_teams:
   - bots
 
+# base_repository_permission
+#   The org's "base permissions" (GitHub API field: default_repository_permission)
+#   — what a plain org member (someone with no elevated org role and on no
+#   team granted access to a given repo) gets on every repo by default.
+#   Should be `read`, not `write`: any access beyond read must come from an
+#   explicit grant — org-wide (global_admin_teams/global_maintain_teams
+#   above), a `<repo>-owners` team (repo-tiers.yaml), or a documented
+#   per-repo exception (repo-policy.yaml) — never from merely being an org
+#   member.
+#
+#   Unlike global_admin_teams/global_maintain_teams, this is a
+#   documentation-only entry: it's an org-level setting (Settings ->
+#   Member privileges -> Base permissions on github.com/orgs/cloudnative-pg),
+#   not a per-repo one, so fix-repo-settings.sh has no lever for it —
+#   check-repo-settings.sh audits it (see its "Default repository
+#   permission for members" report line) but nothing here changes it.
+#   Confirmed live on GitHub as `read` as of this writing (see
+#   repo-settings-report.md). If a future audit ever shows `write`, that's
+#   a real org-level setting to change by hand (Organization settings, not
+#   a script), not something any script in this repo will fix for you.
+base_repository_permission: read
+
 # subproject_committees
 #   Placeholder GitHub teams for governance's proposed federated model
 #   (CNCF incubation restructuring, cloudnative-pg/governance's dev/67
