@@ -187,10 +187,26 @@ fully wrapped up — trim this section once everything below is resolved.
   `fix-repo-settings.sh --apply` and verified clean via
   `check-repo-settings.sh`. All policy-file changes committed and pushed
   directly to this repo's `main` (commit `20073b2`).
-- Rendered and landed a basic CODEOWNERS file (`* @cloudnative-pg/klio-owners`)
-  in `klio` via `render-codeowners.rb` — open as
+- Rendered and landed a basic CODEOWNERS file in `klio` — open as
   [cloudnative-pg/klio#239](https://github.com/cloudnative-pg/klio/pull/239),
-  not yet merged.
+  not yet merged. Ended up two-part: `* @cloudnative-pg/klio-owners`,
+  plus `jlong49` (John Long) named individually as a reviewer, per
+  Gabriele's explicit call that he should be able to review without
+  being made a `klio-owners` team member. An earlier check in this same
+  session had shown `jlong49` as a live `klio-owners` team member (which
+  would have been genuine drift against `repo-tiers.yaml`, which never
+  listed him) — a second, closer look showed that reading was stale: he
+  was actually only a **direct repo collaborator with `read`**, not a
+  team member at all. Corrected by: adding him to
+  `componentowners-policy.yaml`'s `klio` `*` rule as an individual user
+  (not touching `repo-tiers.yaml`'s owners — he's intentionally not an
+  owner), and raising his direct collaborator grant from `read` to
+  `write` via `gh api`, since CODEOWNERS silently drops a named
+  individual who doesn't hold write+ access. That direct grant is *not*
+  tracked by any script here (`sync-project-owner-teams.sh` only manages
+  the `<repo>-owners` team) — if it's ever revoked by hand, he'd stop
+  being a functional code owner even though `componentowners-policy.yaml`
+  still names him.
 
 **Not done yet — pick back up here:**
 - `community-operators` and `kopia` themselves still have no real
@@ -198,16 +214,6 @@ fully wrapped up — trim this section once everything below is resolved.
   `check-repo-settings.sh`'s audit) — same treatment as `klio` above
   (`render-codeowners.rb <repo>` → write → branch → PR) still needs
   doing for both.
-- **Known drift, decision already made, not yet applied**: GitHub user
-  `jlong49` (John Long) is an active member of the `klio-owners` team
-  live on GitHub but is missing from `repo-tiers.yaml`'s `owners:` list
-  for `klio` (currently `[fcanovai, leonardoce, gabriele-wolfox,
-  GabriFedi97]`) — confirmed via a `sync-project-owner-teams.sh klio`
-  dry-run, which would otherwise remove him on the next `--apply` (see
-  "authoritative desired state, not just a floor" above). Gabriele
-  confirmed he belongs there: add `jlong49` to that `owners:` list in
-  `repo-tiers.yaml` and commit/push — no GitHub-side change needed, he
-  already has the access; this is purely a policy-file catch-up.
 - Neither `community-operators` nor `kopia` has a `LICENSE` file
   detectable by `check-repo-settings.sh` on their default branch — worth
   a look, but not something this tooling can create on its own (an
