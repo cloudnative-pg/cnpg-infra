@@ -40,7 +40,7 @@ MANIFEST="$INFRA_ROOT/generated/managed-repos.yaml"
 command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1; }
 command -v jq >/dev/null 2>&1 || { echo "error: jq is required" >&2; exit 1; }
 
-# shellcheck source=./render-gitvote-config.sh
+# shellcheck source=./render-gitvote-config.sh disable=SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/render-gitvote-config.sh"
 
 repo="${1:-}"
@@ -100,7 +100,7 @@ if [ -n "$existing_sha" ]; then
   diff -u <(echo "$actual") <(echo "$expected") | tail -n +3
 else
   echo "No .gitvote.yml on $default_branch yet. Will create:"
-  echo "$expected" | sed 's/^/  + /'
+  printf '  + %s\n' "${expected//$'\n'/$'\n''  + '}"
 fi
 echo
 

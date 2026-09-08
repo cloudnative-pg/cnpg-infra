@@ -31,6 +31,7 @@ command -v gh >/dev/null 2>&1 || { echo "error: gh CLI is required" >&2; exit 1;
 command -v jq >/dev/null 2>&1 || { echo "error: jq is required" >&2; exit 1; }
 [ -f "$MANIFEST" ] || { echo "error: $MANIFEST not found -- run ./update-managed-repos.sh first" >&2; exit 1; }
 
+# shellcheck source=./render-gitvote-config.sh disable=SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/render-gitvote-config.sh"
 
 if [ $# -ge 1 ]; then
@@ -127,6 +128,9 @@ for repo in "${REPOS[@]}"; do
     echo "### $repo"
     echo
     echo "Category: \`${category:-default}\`$([ "$excluded" = "true" ] && echo " -- **excluded** (see gitvote-policy.yaml): $reason")"
+    # Single quotes below are deliberate (a printf format string), not a
+    # missed variable expansion.
+    # shellcheck disable=SC2016
     echo "Voter team(s) expected: $(printf '`%s` ' "${voter_teams[@]}")"
     [ "$teams_ok" = "false" ] && echo "- ⚠️ **team(s) not found on GitHub**: ${missing_teams[*]} -- gitvote falls back to \"all repository collaborators\" for a rule naming a team that doesn't exist, silently"
     echo "- .gitvote.yml present on default branch: $present_cell"
