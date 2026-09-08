@@ -111,3 +111,19 @@ subproject_committees:
     - gbartolini
     - leonardoce
     - mnencia
+
+# steering_committee
+#   The real GitHub team gitvote and repo access now scope Steering
+#   Committee business to (created 2026-09-08), unlike the 4 placeholder
+#   committees above. Same caveat still applies: it's not yet ratified
+#   or elected per governance's dev/67 + dev/70 draft, so membership below
+#   is today's 5 core maintainers, not a final roster. Same sync gap as
+#   subproject_committees too: no script reconciles this list against the
+#   live team yet, so a change here needs a matching `gh api` call by
+#   hand until that's automated.
+steering_committee:
+  - armru
+  - fcanovai
+  - gbartolini
+  - leonardoce
+  - mnencia

@@ -65,6 +65,7 @@ half-completed run before that happens.
 | `componentowners-policy.yaml` | Per-repo CODEOWNERS content — both the catch-all `*` rule and any path-scoped rules, each as teams + users |
 | `org-policy.yaml` | Rules that apply identically to every repo (e.g. which teams get `admin` everywhere), so they don't need repeating per-repo |
 | `milestones-policy.yaml` | Desired "horizon" milestones (Now / Next / Later, title + description copied verbatim from `cloudnative-pg/cloudnative-pg`'s own generic triage milestones), each one's `due_offset_months` (used to compute a rolling due date, not a fixed one), and the explicit, hand-picked list of repos it should exist in |
+| `gitvote-policy.yaml` | Per-repo exceptions to the gitvote configuration baseline (see below). Only the five org-control repos need an entry; every other managed repo gets the default template with no bespoke entry at all |
 
 **Scripts (all in `scripts/`, YAML config stays in the repo root):**
 
@@ -79,6 +80,8 @@ half-completed run before that happens.
 | `scripts/fix-all-repos.sh [--apply]` | Runs `fix-repo-settings.sh` across every repo in `managed-repos.yaml`, one at a time, with a summary at the end. Same dry-run-by-default safety model — nothing here is new logic, just a loop |
 | `scripts/validate-policy.rb` | Static validation of the YAML policy files: every file parses, every managed repo has a `repo-tiers.yaml`/`componentowners-policy.yaml` entry, `class`/`subproject` values are from the documented enum, every referenced team slug exists in `generated/teams.yaml`'s last snapshot, and every repo referenced in `milestones-policy.yaml` is managed. No GitHub API calls — safe to run in CI, and also runs there (`.github/workflows/lint.yml`, alongside ShellCheck on every script) |
 | `scripts/sync-milestones.rb [repo] [--apply]` | Reconciles GitHub milestones against `milestones-policy.yaml`: creates a missing milestone (matched by exact title), updates its description and/or due date if either has drifted. Due date is a rolling window computed from `due_offset_months` and the date the script runs, not a fixed date — it advances on its own each time this next runs in a new calendar month. Never touches open/closed state or issue assignments. **Defaults to dry-run** — always review the plan before re-running with `--apply` |
+| `scripts/check-gitvote-config.sh [repo]` | Read-only audit of each repo's `.gitvote.yml` against `gitvote-policy.yaml`'s baseline, plus a one-time check of the [gitvote](https://github.com/cncf/gitvote) GitHub App's org-wide installation scope. Writes `gitvote-config-report.md` |
+| `scripts/fix-gitvote-config.sh <repo> [--apply]` | Lands the `.gitvote.yml` that repo's category calls for. Not a settings PATCH like `fix-repo-settings.sh` -- `.gitvote.yml` lives in the repo's own git history, so this opens a PR (branch, commit, `gh pr create`), except for `cnpg-infra` itself, which gets a direct commit to its default branch per its own documented bypass exception. **Defaults to dry-run** -- always review the diff (and, for a non-`cnpg-infra` repo, that a PR is about to be opened) before re-running with `--apply` |
 
 ## Adding a new repo
 
@@ -119,6 +122,39 @@ older manual path instead:
    `componentowners-policy.yaml` by hand.
 4. Run `./scripts/fix-repo-settings.sh <name>` (dry-run first, review the
    diff, then `--apply`) to bring it up to the settings baseline.
+
+## GitVote configuration
+
+[gitvote](https://github.com/cncf/gitvote) is already installed org-wide
+with repository selection "all", so every managed repo, current and
+future, already has the app -- there's no per-repo install step. What
+each repo needs is its own `.gitvote.yml`, scoped to that repo's actual
+eligible voters rather than a stale or overly broad team.
+
+A repo with its own `<repo>-owners` team (see `repo-tiers.yaml`'s
+`owners` field) gets two profiles, both scoped to that team, mirroring
+`CONTRIBUTOR_LADDER.md`'s two repository-level thresholds: `default`
+(simple majority, Contributor promotion/removal) and `component-owner`
+(two-thirds majority, Component Owner promotion/removal). The five
+org-control repos (`governance`, `.project`, `.github`, `cnpg-infra`,
+`cnpg-template`) get the same shape scoped to `steering-committee`
+instead, since their votes are Steering Committee business, not a
+subproject's.
+
+`gitvote-policy.yaml` is where a repo's category (`org-control` today)
+or an outright exclusion is recorded; most repos need no entry there at
+all and just get the default per-repo-owners template.
+`scripts/render-gitvote-config.sh <repo>` prints what a given repo's
+`.gitvote.yml` should be; `scripts/check-gitvote-config.sh` audits every
+managed repo's live file against that render, and
+`scripts/fix-gitvote-config.sh <repo> [--apply]` lands it (a PR for most
+repos, a direct commit for `cnpg-infra`'s own bypass exception). Same
+dry-run-by-default rule as everything else here: review the diff, then
+`--apply`.
+
+`governance` is excluded outright (`gitvote-policy.yaml`'s
+`excluded: true`) -- its own `.gitvote.yml` fix landed as its own PR in
+that repo, not from here.
 
 ## Conventions
 

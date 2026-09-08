@@ -1,3 +1,6 @@
 # Generated audit output — a point-in-time report, not a source of truth
 # worth version-controlling. Re-run check-repo-settings.sh to regenerate it.
 repo-settings-report.md
+
+# Same as above, for check-gitvote-config.sh.
+gitvote-config-report.md
