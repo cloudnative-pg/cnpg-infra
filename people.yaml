@@ -17,8 +17,8 @@
 # Every value below is sourced from a file in the org, not inferred:
 #   - names and countries: governance/CONTRIBUTORS.md as it stood on `main`
 #     before the dev/67 rewrite, and the deleted COMPONENT-OWNERS.md
-#   - organization: governance/MAINTAINERS.md, governance/CLAUDE.md's
-#     candidate-roster working notes, or a commit email in the repo itself
+#   - organization: governance/MAINTAINERS.md, a commit email in the repo
+#     itself, or confirmation from a maintainer
 # A field nobody has recorded anywhere is left out rather than guessed --
 # these are real people, and a wrong employer or country is worse than a
 # blank one. Fill them in when the person or a maintainer confirms it.

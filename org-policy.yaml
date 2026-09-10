@@ -30,9 +30,10 @@
 #
 # Adding or removing a team here is an operational call, same as
 # repo-policy.yaml entries — not a governance decision requiring a vote
-# (see governance/CLAUDE.md) — but changing who has org-wide admin or
-# maintain access on every repo is high-impact, so treat this file's
-# edits with more care than a routine repo-policy.yaml addition.
+# (governance/GOVERNANCE.md's Voting section defines those) — but changing
+# who has org-wide admin or maintain access on every repo is high-impact,
+# so treat this file's edits with more care than a routine
+# repo-policy.yaml addition.
 
 global_admin_teams:
   - admins
@@ -116,10 +117,11 @@ subproject_committees:
 
 # steering_committee
 #   The real GitHub team gitvote and repo access now scope Steering
-#   Committee business to (created 2026-09-08), unlike the 4 placeholder
-#   committees above. Same caveat still applies: it's not yet ratified
-#   or elected per governance's dev/67 + dev/70 draft, so membership below
-#   is today's 5 core maintainers, not a final roster. Same sync gap as
+#   Committee business to (created 2026-09-08). Membership below is
+#   today's 5 maintainers: dev/67 defines Steering as exactly that group
+#   for now, and the seat count, per-organisation cap and election
+#   mechanism are the follow-up change (governance#68), not this one.
+#   Same sync gap as
 #   subproject_committees too: no script reconciles this list against the
 #   live team yet, so a change here needs a matching `gh api` call by
 #   hand until that's automated.

@@ -192,7 +192,7 @@ repositories:
       - path: "/subprojects/core.md"
         teams: [core-maintainers]
         users: []
-        note: "Real current CODEOWNERS scopes each subprojects/*.md file to its own subproject committee, per governance/subprojects/README.md and governance's own CLAUDE.md. subprojects/core.md exists on dev/67 (the core-projects.md rename is done). core-maintainers exists as a real GitHub team, granted write on this repo via repo-policy.yaml's extra_team_permissions, but its membership is still a placeholder mirroring admins, not a ratified roster (see org-policy.yaml's subproject_committees). The renderer prepends the `*` rule's governance-owners to this line, which is the fallback while that is true."
+        note: "Real current CODEOWNERS scopes each subprojects/*.md file to its own subproject committee, per governance/subprojects/README.md. subprojects/core.md exists on dev/67 (the core-projects.md rename is done). core-maintainers exists as a real GitHub team, granted write on this repo via repo-policy.yaml's extra_team_permissions, but its membership is still a placeholder mirroring admins, not a ratified roster (see org-policy.yaml's subproject_committees). The renderer prepends the `*` rule's governance-owners to this line, which is the fallback while that is true."
       - path: "/subprojects/supply-chain.md"
         teams: [supply-chain-maintainers]
         users: []

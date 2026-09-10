@@ -78,7 +78,7 @@
 #     it doesn't make the team a required reviewer. Any other team's
 #     access (a repo's own <repo>-owners team, direct collaborators) is
 #     untouched here — that's sync-project-owner-teams.sh's job, or a
-#     governance/roster decision (see governance/CLAUDE.md).
+#     governance/roster decision (see governance/GOVERNANCE.md).
 #   - Ruleset bypass actors: repo-policy.yaml's `ruleset_bypass_teams`
 #     (if set for a repo) adds each listed team to the ruleset's
 #     bypass_actors with bypass_mode "always" — that team can then push
