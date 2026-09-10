@@ -26,8 +26,12 @@ require_relative "lib_people"
 INFRA_ROOT = File.expand_path("..", __dir__)
 TIERS_FILE = File.join(INFRA_ROOT, "repo-tiers.yaml")
 
-LADDER_URL = "https://github.com/cloudnative-pg/governance/blob/main/CONTRIBUTOR_LADDER.md"
-SUBPROJECTS_URL = "https://github.com/cloudnative-pg/governance/blob/main/subprojects"
+# Deliberately the repository root, not a deep link into a file: the
+# federated model's documents (CONTRIBUTOR_LADDER.md, subprojects/) don't
+# exist on governance's default branch until dev/67 merges, so a
+# file-level link would 404 for every reader in the meantime. Name the
+# document in the text instead.
+GOVERNANCE_URL = "https://github.com/cloudnative-pg/governance"
 
 # repo-tiers.yaml's `subproject` values, as they should read to someone
 # who has never seen that file. org-control and unclassified are not
@@ -79,8 +83,9 @@ when "org-control"
   lines << "administered directly by the Steering Committee rather than by a"
   lines << "subproject maintainer committee."
 when *SUBPROJECT_NAMES.keys
-  lines << "`#{repo}` is a component of the [#{name}](#{SUBPROJECTS_URL}/#{file})"
-  lines << "subproject of CloudNativePG."
+  lines << "`#{repo}` is a component of the **#{name}** subproject of"
+  lines << "CloudNativePG (see `subprojects/#{file}` in"
+  lines << "[cloudnative-pg/governance](#{GOVERNANCE_URL}))."
 else
   lines << "`#{repo}` is not yet classified under any CloudNativePG subproject."
 end
@@ -95,12 +100,12 @@ lines << "| Name | GitHub Handle | Country |"
 lines << "| :--- | :--- | :--- |"
 People.sorted(owners).each { |o| lines << People.row(o) }
 lines << ""
-lines << "Component Owner is a rung of the CloudNativePG"
-lines << "[contributor ladder](#{LADDER_URL}#component-owner). A new owner is added"
-lines << "by a ⅔ vote of this repository's existing Component Owners, held on an"
-lines << "issue in this repository; the change is then recorded in `cnpg-infra`,"
-lines << "which grants the access and regenerates this file. See the"
-lines << "[contributor ladder](#{LADDER_URL}) for the full process, including what"
-lines << "happens when a repository has too few owners to reach that threshold."
+lines << "Component Owner is a rung of the CloudNativePG contributor ladder. A new"
+lines << "owner is added by a ⅔ vote of this repository's existing Component Owners,"
+lines << "held on an issue in this repository; the change is then recorded in"
+lines << "`cnpg-infra`, which grants the access and regenerates this file. See"
+lines << "`CONTRIBUTOR_LADDER.md` in [cloudnative-pg/governance](#{GOVERNANCE_URL})"
+lines << "for the full process, including what happens when a repository has too few"
+lines << "owners to reach that threshold."
 
 puts lines.join("\n")

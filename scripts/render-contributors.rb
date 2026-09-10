@@ -28,7 +28,9 @@ require_relative "lib_people"
 INFRA_ROOT = File.expand_path("..", __dir__)
 TIERS_FILE = File.join(INFRA_ROOT, "repo-tiers.yaml")
 
-LADDER_URL = "https://github.com/cloudnative-pg/governance/blob/main/CONTRIBUTOR_LADDER.md"
+# Repository root, not a deep link: see the note in
+# render-component-owners.rb.
+GOVERNANCE_URL = "https://github.com/cloudnative-pg/governance"
 
 repo = ARGV[0]
 if repo.nil? || repo.empty?
@@ -61,7 +63,7 @@ lines << "that has already passed, never to make the decision itself."
 lines << "-->"
 lines << ""
 lines << "The people below hold the **Contributor** tier for `#{repo}`: the entry"
-lines << "rung of the CloudNativePG [contributor ladder](#{LADDER_URL}#contributor),"
+lines << "rung of the CloudNativePG contributor ladder,"
 lines << "recognition for contributions to this repository rather than a grant of"
 lines << "access to it. This project is grateful for their work."
 lines << ""
@@ -73,7 +75,8 @@ lines << "Contributor status is awarded by nomination and a simple-majority vote
 lines << "this repository's [Component Owners](COMPONENT_OWNERS.md), held on an issue"
 lines << "in this repository. A Contributor later promoted to Component Owner moves"
 lines << "to that file and is removed from this one. Contributions are not limited to"
-lines << "code: documentation, review, triage, and community work all count. See the"
-lines << "[contributor ladder](#{LADDER_URL}) for the full requirements and process."
+lines << "code: documentation, review, triage, and community work all count. See"
+lines << "`CONTRIBUTOR_LADDER.md` in [cloudnative-pg/governance](#{GOVERNANCE_URL})"
+lines << "for the full requirements and process."
 
 puts lines.join("\n")
