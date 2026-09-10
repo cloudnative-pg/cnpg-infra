@@ -107,7 +107,15 @@ stdout and touch nothing.
 repo's sibling clone, dry-run by default with a per-file diff. It stops
 at the working tree on purpose: no commit, no push, no GitHub call. Then
 commit and open a PR in *that* repo (DCO sign-off, Conventional Commit,
-`Assisted-by:` trailer). Unlike `cnpg-infra` itself, a target repo normally has no
+`Assisted-by:` trailer).
+
+**Fetch before you branch.** These clones sit idle while PRs get merged
+from the browser, so a sibling's `origin/main` is stale more often than
+not: `git fetch origin && git checkout -B <branch> origin/main`, in that
+order, in the target repo. Cutting a branch from a stale ref once
+produced a `cnpg-template` branch that duplicated what `main` already
+had. `git merge-base --is-ancestor origin/main HEAD`, after a fresh
+fetch, is the check. Unlike `cnpg-infra` itself, a target repo normally has no
 PR-bypass exception, so don't push straight to its default branch even
 though `cnpg-infra`'s own workflow does that for its own changes — see
 "cnpg-infra's own repo is a deliberate exception" below; that exception
