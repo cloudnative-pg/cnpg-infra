@@ -47,17 +47,15 @@
 # to other tooling) even though "automated" already means class doesn't
 # change its review-count/code-owner-review requirements today.
 #
-# subproject matches governance/subprojects/*.md's grouping. org-control
-# is for repos that aren't part of any subproject and so have no class
-# either — they're governed by the existing admins/steering-based model,
-# not this scheme. `cnpg-template` is grouped here even though governance/
-# subprojects/supply-chain.md currently still lists it under Supply Chain —
-# it's the template every new org repo (including org-control ones) forks
-# from, which makes it org tooling rather than a subproject deliverable;
-# this is a real discrepancy with governance worth reconciling there, not
-# something silently fixed by this file alone. "unclassified" means
-# governance/subprojects/*.md doesn't document a subproject yet — a real
-# gap, not an oversight here.
+# subproject matches governance/subprojects/*.md's grouping, and every
+# managed repo now has one that agrees with it. org-control is for the five
+# repos that aren't part of any subproject and so have no class either —
+# they're governed by the existing admins/steering-based model, not this
+# scheme; governance's dev/67 moved `cnpg-template` here too, so this file
+# and that listing no longer disagree. "unclassified" is still an accepted
+# value, for a repo governance hasn't grouped yet, but nothing uses it
+# today: a new entry should get a real subproject, or the gap belongs in
+# governance/subprojects/*.md first.
 #
 # description overrides the repo's GitHub description field.
 # fix-repo-settings.sh pushes it via PATCH /repos/{owner}/{repo} whenever
@@ -189,7 +187,7 @@ repositories:
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: barman-cloud
     class: B
-    subproject: core
+    subproject: extensibility
     reason: "Backup/restore library — correctness bugs here risk data loss, but it's a library the operator depends on, not itself the customer-facing surface."
     description: "Go library for interacting with Barman Cloud object stores, used by the operator's native backup support."
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
@@ -310,11 +308,11 @@ repositories:
     owners: [TamaraNocentini]
   - name: community-operators
     class: C
-    subproject: unclassified
-    reason: "External fork of k8s-operatorhub/community-operators used to publish the operator to OperatorHub.io — not org-authored runtime code, and not yet reflected in any governance/subprojects/*.md listing."
+    subproject: supply-chain
+    reason: "External fork of k8s-operatorhub/community-operators used to publish the operator to OperatorHub.io — not org-authored runtime code. Listed under Distribution in governance/subprojects/supply-chain.md, which notes it is kept in sync rather than technically owned."
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: kopia
     class: C
-    subproject: unclassified
-    reason: "External fork of kopia/kopia (deduplication engine klio depends on) — not org-authored runtime code, and not yet reflected in any governance/subprojects/*.md listing. Note: this fork's default branch is 'klio', not 'main'."
+    subproject: extensibility
+    reason: "External fork of kopia/kopia (deduplication engine klio depends on) — not org-authored runtime code. Listed under External Dependencies in governance/subprojects/extensibility.md, which notes it is kept in sync rather than technically owned. This fork's default branch is 'klio', not 'main'."
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia, gabriele-wolfox]
