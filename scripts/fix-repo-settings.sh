@@ -69,8 +69,9 @@
 #     left completely alone (not blanked) — this is an opt-in override, the
 #     only field in any policy file here that can *change* something a repo
 #     already has rather than just floor it.
-#   - Team repo access: only org-policy.yaml's global_admin_teams and
-#     global_maintain_teams are enforced here — each listed team is raised
+#   - Team repo access: org-policy.yaml's global_admin_teams and
+#     global_maintain_teams, plus repo-policy.yaml's per-repo
+#     extra_team_permissions — each listed team is raised
 #     to at least that permission on every managed repo if it's currently
 #     lower (or has none at all), never downgraded if it's already
 #     stricter. This is a repo permission grant, not a CODEOWNERS entry —
@@ -157,6 +158,22 @@ policy_ruleset_bypass_teams() { # $1 = repo name -> one team slug per line, empt
     found_name && /^    ruleset_bypass_teams:/ {
       line=$0
       sub(/^    ruleset_bypass_teams: \[/, "", line)
+      sub(/\]$/, "", line)
+      gsub(/ /, "", line)
+      n = split(line, arr, ",")
+      for (i = 1; i <= n; i++) if (arr[i] != "") print arr[i]
+      exit
+    }
+  ' "$POLICY"
+}
+
+policy_extra_team_permissions() { # $1 = repo name -> one "team:permission" pair per line, empty if none
+  [ -f "$POLICY" ] || return
+  awk -v want="$1" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && /^    extra_team_permissions:/ {
+      line=$0
+      sub(/^    extra_team_permissions: \[/, "", line)
       sub(/\]$/, "", line)
       gsub(/ /, "", line)
       n = split(line, arr, ",")
@@ -398,6 +415,23 @@ while read -r t; do
   [ "$(permission_rank "$cur")" -lt "$(permission_rank maintain)" ] && global_team_diffs+=("$t|maintain|$cur")
 done < <(policy_global_teams global_maintain_teams)
 
+# --- repo-policy.yaml's extra_team_permissions: a per-repo grant on top of
+# the org-wide floors above, for a team this repo's CODEOWNERS names but
+# GitHub would otherwise ignore, since it only honors an owner holding
+# write access. Raises only, same as everything else here.
+extra_team_diffs=() # each entry: "team|desired_permission|current_permission"
+while read -r pair; do
+  [ -z "$pair" ] && continue
+  et_team="${pair%%:*}"
+  et_desired="${pair##*:}"
+  if [ -z "$et_team" ] || [ -z "$et_desired" ] || [ "$et_team" = "$pair" ]; then
+    echo "warning: ignoring malformed extra_team_permissions entry '$pair' (expected 'team:permission')" >&2
+    continue
+  fi
+  cur="$(team_repo_permission "$et_team" "$full")"
+  [ "$(permission_rank "$cur")" -lt "$(permission_rank "$et_desired")" ] && extra_team_diffs+=("$et_team|$et_desired|$cur")
+done < <(policy_extra_team_permissions "$repo")
+
 # --- find our own managed ruleset, if one already exists on this repo -----
 existing_ruleset_id="$(gh api "repos/$full/rulesets" 2>/dev/null | jq -r --arg name "$RULESET_NAME" '.[] | select(.name==$name) | .id' | head -1)"
 
@@ -540,6 +574,11 @@ for entry in "${global_team_diffs[@]:-}"; do
   IFS='|' read -r gt_team gt_desired gt_current <<< "$entry"
   diff_line "team '$gt_team' permission (org-policy.yaml)" "$gt_current" "$gt_desired"
 done
+for entry in "${extra_team_diffs[@]:-}"; do
+  [ -z "$entry" ] && continue
+  IFS='|' read -r et_team et_desired et_current <<< "$entry"
+  diff_line "team '$et_team' permission (repo-policy.yaml)" "$et_current" "$et_desired"
+done
 for bt in "${bypass_teams_added[@]:-}"; do
   [ -z "$bt" ] && continue
   diff_line "team '$bt' ruleset bypass on $default_branch (repo-policy.yaml)" "no bypass" "always (push + review-free merge)"
@@ -564,7 +603,8 @@ echo
 echo "Untouched by this script (preserved as-is): required status check names,"
 echo "admin enforcement, signed-commit requirement, any other ruleset on the"
 echo "repo, visibility, collaborators, and any team's access other than"
-echo "org-policy.yaml's global_admin_teams/global_maintain_teams."
+echo "org-policy.yaml's global_admin_teams/global_maintain_teams and"
+echo "repo-policy.yaml's extra_team_permissions."
 echo
 
 if [ "$apply" != "true" ]; then
@@ -636,6 +676,14 @@ for entry in "${global_team_diffs[@]:-}"; do
   gh api -X PUT "orgs/${ORG}/teams/${gt_team}/repos/${full}" -f "permission=${gt_desired}" >/dev/null \
     && echo "  ✓ team '$gt_team' granted '$gt_desired' (was '$gt_current')" \
     || echo "  ✗ failed to grant '$gt_team' '$gt_desired' on $full"
+done
+
+for entry in "${extra_team_diffs[@]:-}"; do
+  [ -z "$entry" ] && continue
+  IFS='|' read -r et_team et_desired et_current <<< "$entry"
+  gh api -X PUT "orgs/${ORG}/teams/${et_team}/repos/${full}" -f "permission=${et_desired}" >/dev/null \
+    && echo "  ✓ team '$et_team' granted '$et_desired' (was '$et_current')" \
+    || echo "  ✗ failed to grant '$et_team' '$et_desired' on $full"
 done
 
 echo

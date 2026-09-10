@@ -20,13 +20,10 @@
 #
 # Prefer a team over hardcoding individual users wherever one already
 # fits: a team's membership changes get picked up automatically, a
-# hardcoded user list doesn't. Case in point — postgres-extensions-
-# containers' real, current `*` line lists @GabriFedi97 by name, but
-# governance/subprojects/supply-chain.md's documented owners for that
-# repo don't mention them at all; they're simply a member of the
-# extensions-maintainers team. Listing that team instead of the name
-# resolves the mismatch and stays correct as membership changes, which is
-# exactly why this repo's `*` rule below includes extensions-maintainers.
+# hardcoded user list doesn't. Every repo's `*` rule below follows this by
+# using its own `<repo>-owners` team rather than naming its owners
+# individually; `users` on a rule is for a genuine path-scoped exception
+# (see the path-scoped rules further down), not a repo-wide default.
 #
 # Sourced from governance/subprojects/*.md's Scope + Owners columns
 # (whole-repository AND path-scoped rows both included here, unlike the
@@ -60,15 +57,15 @@ repositories:
   - name: .github
     rules:
       - path: "*"
-        teams: [github-owners, admins]
+        teams: [github-owners]
         users: []
-        note: "Until the steering-committee team (see governance/subprojects/README.md) is rolled out, admins is the fallback broad-access team, same as every other org-control repo without a subproject committee of its own."
+        note: "Org-control repo with no subproject committee of its own. The admins fallback was dropped once github-owners was confirmed to hold maintain here: admins already has admin on every repo via org-policy.yaml's global_admin_teams, so listing it as a code owner only added noise to review requests. Same reasoning across all five org-control repos, matching governance's dev/67 CODEOWNERS."
   - name: .project
     rules:
       - path: "*"
-        teams: [project-owners, admins]
+        teams: [project-owners]
         users: []
-        note: "Same fallback reasoning as .github."
+        note: "Same reasoning as .github."
 
   - name: api
     rules:
@@ -156,9 +153,9 @@ repositories:
   - name: cnpg-infra
     rules:
       - path: "*"
-        teams: [cnpg-infra-owners, admins]
+        teams: [cnpg-infra-owners]
         users: []
-        note: "Not in governance/subprojects/*.md — it's org-control infrastructure like governance/.project/.github, not a subproject deliverable (see governance/subprojects/README.md). Falls back to admins rather than maintainers because it holds real org-admin capability (repo settings, teams, CODEOWNERS enforcement for every other repo)."
+        note: "Not in governance/subprojects/*.md — it's org-control infrastructure like governance/.project/.github, not a subproject deliverable (see governance/subprojects/README.md). The admins fallback was dropped once cnpg-infra-owners was confirmed to hold maintain here; admins keeps admin on this repo via org-policy.yaml regardless, which is what actually matters for a repo holding org-admin capability."
   - name: cnpg-playground
     rules:
       - path: "*"
@@ -167,9 +164,9 @@ repositories:
   - name: cnpg-template
     rules:
       - path: "*"
-        teams: [cnpg-template-owners, admins]
+        teams: [cnpg-template-owners]
         users: []
-        note: "No whole-repo owner documented in governance/subprojects/supply-chain.md."
+        note: "Org-control repo (moved out of Supply Chain by governance's dev/67, see governance/subprojects/README.md). Its live CODEOWNERS still named the deleted org-wide `maintainers` team, so every PR here had an unknown code owner until this was rendered and landed. Same admins-fallback reasoning as .github."
   - name: daggerverse
     rules:
       - path: "*"
@@ -189,13 +186,13 @@ repositories:
   - name: governance
     rules:
       - path: "*"
-        teams: [governance-owners, admins]
+        teams: [governance-owners]
         users: []
-        note: "Steering/CNCF-owned control repo, not part of any subproject — no individual whole-repo owner documented beyond the maintainer committee itself."
+        note: "Steering/CNCF-owned control repo, not part of any subproject — no individual whole-repo owner documented beyond the maintainer committee itself. Same admins-fallback reasoning as .github; this is also what governance's own dev/67 CODEOWNERS does."
       - path: "/subprojects/core.md"
         teams: [core-maintainers]
         users: []
-        note: "Real current CODEOWNERS scopes each subprojects/*.md file to its own subproject committee, per governance/subprojects/README.md and governance's own CLAUDE.md. core-maintainers now exists as a real GitHub team (created ahead of dev/67's ratification), but membership is a placeholder mirroring admins, not a ratified roster (see org-policy.yaml's subproject_committees). Path anticipates governance/subprojects/core-projects.md being renamed to core.md as part of the same rename (not yet done as of this writing — check before relying on this path matching a real file)."
+        note: "Real current CODEOWNERS scopes each subprojects/*.md file to its own subproject committee, per governance/subprojects/README.md and governance's own CLAUDE.md. subprojects/core.md exists on dev/67 (the core-projects.md rename is done). core-maintainers exists as a real GitHub team, granted write on this repo via repo-policy.yaml's extra_team_permissions, but its membership is still a placeholder mirroring admins, not a ratified roster (see org-policy.yaml's subproject_committees). The renderer prepends the `*` rule's governance-owners to this line, which is the fallback while that is true."
       - path: "/subprojects/supply-chain.md"
         teams: [supply-chain-maintainers]
         users: []
@@ -250,7 +247,6 @@ repositories:
       - path: "*"
         teams: [postgres-extensions-containers-owners]
         users: []
-        note: "Real current CODEOWNERS lists @GabriFedi97 by name instead of via extensions-maintainers team membership — see this file's header for why the team reference is preferred going forward."
       - path: "/timescaledb-oss/"
         teams: [postgres-extensions-containers-owners]
         users: [shusaan]

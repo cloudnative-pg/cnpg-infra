@@ -79,6 +79,24 @@
 #   gives it on every repo, so use it only where direct-push automation
 #   actually runs, not as a substitute for the org-wide grant.
 #
+# extra_team_permissions (optional, list of "team:permission" pairs)
+#   Teams that need a repo permission on this one repo specifically,
+#   beyond org-policy.yaml's org-wide global_admin_teams /
+#   global_maintain_teams floors. fix-repo-settings.sh raises each listed
+#   team to at least the permission given and, like every other grant
+#   here, never lowers one that is already stricter.
+#
+#   The case this exists for: a team named in a repo's CODEOWNERS that
+#   holds no permission on that repo. GitHub only honors a CODEOWNERS
+#   entry whose owner has write access — an entry naming a team without
+#   it is reported as an unknown owner and silently never requested for
+#   review. That is exactly the state governance's subprojects/*.md rules
+#   were in (see its entry below), so the grant and the CODEOWNERS
+#   reference need to move together.
+#
+#   Permission values are GitHub's own: read, triage, write (push),
+#   maintain, admin.
+#
 # pages_* (optional — enabled, build_type, branch, path, cname)
 #   Documents the expected GitHub Pages configuration for a repo that
 #   serves one, so check-repo-settings.sh can flag drift (Pages disabled,
@@ -112,6 +130,7 @@
 #   squash_merge_message: PR_BODY (org default, so unused today) |
 #                         COMMIT_MESSAGES
 #   ruleset_bypass_teams: see above
+#   extra_team_permissions: see above
 #   immutable_releases:   see above (only meaningful value is `false`)
 #   pages_*:              see above
 
@@ -179,3 +198,6 @@ repositories:
   - name: grafana-dashboards
     reason: "Release automation overwrites/recreates tags or releases as part of its normal process; release immutability would break that."
     immutable_releases: false
+  - name: governance
+    reason: "Its CODEOWNERS scopes each subprojects/*.md file to that subproject's maintainer committee team, but none of those four teams held any permission on this repo, so GitHub treated all four lines as unknown owners and never requested them for review. Granting write makes the entries real; the governance-owners fallback on the same lines stays until each committee has a ratified roster."
+    extra_team_permissions: [core-maintainers:write, supply-chain-maintainers:write, community-ecosystem-maintainers:write, extensibility-maintainers:write]

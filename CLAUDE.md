@@ -45,7 +45,11 @@ state that state gets reconciled against.
     `docs`, `api`, `artifacts`), `required_reviews` override,
     `ruleset_bypass_teams` (teams that bypass the branch ruleset entirely
     — `always` mode, direct push + review-free merge — for release
-    automation), `pages_*` (documented Pages config, not enforced).
+    automation), `extra_team_permissions` (per-repo `team:permission`
+    grants on top of the org-wide floors, for a team a repo's CODEOWNERS
+    names but that holds no access there — GitHub silently ignores a
+    CODEOWNERS entry whose owner lacks write), `pages_*` (documented
+    Pages config, not enforced).
 
 Adding an entry to any hand-maintained file is an operational call about
 that one repo, not a governance decision — no vote needed, just a clear
@@ -90,13 +94,20 @@ in the same pass as adding them to a team unless `is_active_org_member()`
 confirms they're already active — otherwise they lose real access for
 however long the invite sits unaccepted.
 
-## Landing a rendered CODEOWNERS file in a target repo
+## Landing generated ownership files in a target repo
 
-`scripts/render-codeowners.rb <repo>` only prints the desired content —
-it never touches the target repo's clone or GitHub state. To actually
-land it: write the output to `<repo>/CODEOWNERS`, commit, and open a PR
-in *that* repo (DCO sign-off, Conventional Commit, `Assisted-by:`
-trailer). Unlike `cnpg-infra` itself, a target repo normally has no
+Two files in every managed repo are generated from policy here:
+`CODEOWNERS` (from `componentowners-policy.yaml`, via
+`scripts/render-codeowners.rb`) and `COMPONENT_OWNERS.md` (from
+`repo-tiers.yaml`'s `owners:`, via
+`scripts/render-component-owners.rb`). Both renderers only print to
+stdout and touch nothing.
+
+`scripts/sync-ownership-files.sh <repo> [--apply]` writes both into that
+repo's sibling clone, dry-run by default with a per-file diff. It stops
+at the working tree on purpose: no commit, no push, no GitHub call. Then
+commit and open a PR in *that* repo (DCO sign-off, Conventional Commit,
+`Assisted-by:` trailer). Unlike `cnpg-infra` itself, a target repo normally has no
 PR-bypass exception, so don't push straight to its default branch even
 though `cnpg-infra`'s own workflow does that for its own changes — see
 "cnpg-infra's own repo is a deliberate exception" below; that exception
@@ -207,6 +218,30 @@ fully wrapped up — trim this section once everything below is resolved.
   the `<repo>-owners` team) — if it's ever revoked by hand, he'd stop
   being a functional code owner even though `componentowners-policy.yaml`
   still names him.
+
+**Added 2026-09-09, out of the `governance` `dev/67` review:**
+- `repo-policy.yaml` gained `extra_team_permissions`, and its `governance`
+  entry grants `write` to the four `<subproject>-maintainers` teams.
+  Reason: that repo's CODEOWNERS scopes each `subprojects/*.md` to its
+  committee team, but none of the four held any permission there, so
+  GitHub treated all four lines as unknown owners. **Dry-run only so
+  far** — `./scripts/fix-repo-settings.sh governance --apply` has not
+  been run; ask before running it.
+- New `scripts/render-component-owners.rb` and
+  `scripts/sync-ownership-files.sh` (see "Landing generated ownership
+  files in a target repo" above). `governance`'s docs now point at each
+  component's `COMPONENT_OWNERS.md` as the public record of who owns it,
+  so those files need generating and landing per repo — nothing has been
+  landed in any target repo yet.
+- Still to do here: require the passed vote issue's URL on an `owners:`
+  change (the edit records a decision, never makes one), and render a
+  fallback-electorate profile for a repo with too few named owners, where
+  `CONTRIBUTOR_LADDER.md` says the subproject committee (then Steering)
+  decides but the rendered electorate is `<repo>-owners` only.
+- `gitvote-policy.yaml`'s reason for excluding `governance` is now stale:
+  that repo's `.gitvote.yml` has eleven profiles and an `automation`
+  block, and names its ⅔ profile `governance` where the org-control
+  template names it `steering`.
 
 **Not done yet — pick back up here:**
 - `community-operators` and `kopia` themselves still have no real

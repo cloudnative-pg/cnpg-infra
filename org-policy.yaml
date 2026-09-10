@@ -63,17 +63,18 @@ global_maintain_teams:
 base_repository_permission: read
 
 # subproject_committees
-#   Placeholder GitHub teams for governance's proposed federated model
+#   The 4 subproject maintainer committees of governance's federated model
 #   (CNCF incubation restructuring, cloudnative-pg/governance's dev/67
 #   branch: a Steering Committee separate from per-subproject maintainer
-#   committees — Core Projects, Supply Chain, Community & Ecosystem,
-#   Extensibility). These 4 teams already exist on GitHub (created ahead
-#   of ratification, at Gabriele's request, to have the layout ready) and
-#   are referenced by name in governance's real CODEOWNERS today
-#   (subprojects/*.md path rules) — but membership below is a *placeholder*:
-#   all 4 currently mirror the `admins` team (the same 5 people), not a
-#   ratified per-subproject roster. Update this list once dev/67 lands and
-#   assigns real, distinct membership per committee.
+#   committees — Core, Supply Chain, Community/Docs & Ecosystem,
+#   Extensibility). These are no longer placeholders: dev/67 gives all four
+#   a real roster in governance/MAINTAINERS.md, and all four are seeded
+#   with the same 5 people, the maintainers as they stood before the
+#   restructuring, since that is who held the authority being divided up.
+#   Expected to diverge as Component Owners are promoted into them, which
+#   is when this list stops being five identical blocks. Each committee has
+#   a floor of 3 members; below that, Steering is caretaker for that
+#   subproject (see governance/GOVERNANCE.md).
 #
 #   Unlike repo-tiers.yaml's `owners` field, there is no sync script for
 #   this yet — editing this list does not by itself change GitHub team
@@ -82,10 +83,11 @@ base_repository_permission: read
 #   extended to cover this, the way sync-project-owner-teams.sh does for
 #   the `<repo>-owners` teams).
 #
-#   No direct repo access is granted to any of these 4 teams today —
-#   governance's CODEOWNERS lines that reference them also list `admins`
-#   as a fallback, which already has real access, so review-routing works
-#   even with these teams currently empty of distinct membership.
+#   Repo access: each of the 4 is granted `write` on the `governance` repo
+#   via repo-policy.yaml's extra_team_permissions, without which GitHub
+#   ignores the CODEOWNERS lines that reference them. The `Maintain` grant
+#   on each subproject's own repositories, which governance's
+#   subprojects/README.md describes as the target, is not in place yet.
 subproject_committees:
   core-maintainers:
     - armru

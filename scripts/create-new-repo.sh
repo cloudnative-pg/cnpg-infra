@@ -10,8 +10,9 @@
 #   4. Regenerates generated/managed-repos.yaml.
 #   5. Creates and populates its <repo>-owners team
 #      (scripts/sync-project-owner-teams.sh).
-#   6. Renders and pushes its real CODEOWNERS
-#      (scripts/render-codeowners.rb) -- deliberately BEFORE step 7, since
+#   6. Renders and pushes its real CODEOWNERS and COMPONENT_OWNERS.md
+#      (scripts/render-codeowners.rb, scripts/render-component-owners.rb)
+#      -- deliberately BEFORE step 7, since
 #      fix-repo-settings.sh's ruleset would otherwise block this direct
 #      push once it's in place.
 #   7. Brings it up to the settings baseline
@@ -162,7 +163,7 @@ echo "--- 5. Regenerating generated/managed-repos.yaml ---"
 echo "--- 6. Creating and populating ${name}-owners team ---"
 "$INFRA_ROOT/scripts/sync-project-owner-teams.sh" "$name" --apply
 
-echo "--- 7. Rendering and pushing CODEOWNERS ---"
+echo "--- 7. Rendering and pushing CODEOWNERS and COMPONENT_OWNERS.md ---"
 codeowners_content="$(ruby "$INFRA_ROOT/scripts/render-codeowners.rb" "$name")"
 existing_sha="$(gh api "repos/$full/contents/CODEOWNERS" --jq '.sha' 2>/dev/null)"
 b64="$(echo "$codeowners_content" | base64)"
@@ -173,6 +174,18 @@ if [ -n "$existing_sha" ]; then
 else
   gh api -X PUT "repos/$full/contents/CODEOWNERS" -f message="$msg" -f content="$b64" >/dev/null \
     && echo "  ✓ CODEOWNERS created" || echo "  ✗ failed to create CODEOWNERS"
+fi
+
+# Same direct-push reasoning as CODEOWNERS above: this has to land before
+# step 8 puts the ruleset in place. A brand-new repo has no contributors
+# yet, so only the owners file is rendered here; CONTRIBUTORS.md appears
+# the first time someone is voted in (sync-ownership-files.sh).
+component_owners_content="$(ruby "$INFRA_ROOT/scripts/render-component-owners.rb" "$name")"
+if [ -n "$component_owners_content" ]; then
+  co_b64="$(echo "$component_owners_content" | base64)"
+  co_msg=$'chore: add generated COMPONENT_OWNERS.md\n\nGenerated from repo-tiers.yaml in cloudnative-pg/cnpg-infra.\n\nAssisted-by: Claude'
+  gh api -X PUT "repos/$full/contents/COMPONENT_OWNERS.md" -f message="$co_msg" -f content="$co_b64" >/dev/null \
+    && echo "  ✓ COMPONENT_OWNERS.md created" || echo "  ✗ failed to create COMPONENT_OWNERS.md"
 fi
 
 echo "--- 8. Bringing $name up to the settings baseline ---"

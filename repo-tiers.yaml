@@ -81,6 +81,21 @@
 # for the org-control repos — there is no `maintainers` team anymore, it
 # was deleted org-wide once every repo had its own owners team).
 #
+# contributors lists the individuals holding the Contributor tier for this
+# repo: the entry rung of governance's CONTRIBUTOR_LADDER.md. Recognition
+# only, no access — unlike owners above, nothing in GitHub state reflects
+# it, which is exactly why it needs a written record. Both fields are
+# rendered into files in the repo itself (scripts/render-component-owners.rb
+# and scripts/render-contributors.rb, landed by
+# scripts/sync-ownership-files.sh), with names and countries from
+# people.yaml. Someone listed here was voted in by this repo's own
+# Component Owners; the entry records that vote, it doesn't make the
+# decision. Most repos have no entry at all, and get no CONTRIBUTORS.md.
+#
+# Nobody should be in both fields for the same repo: promotion to Component
+# Owner means moving up, not holding both rungs. validate-policy.rb checks
+# this.
+#
 # Fields:
 #   name:        repo name, must match an entry in managed-repos.yaml
 #   class:       A | B | C | n/a (org-control repos)
@@ -90,6 +105,7 @@
 #                description alone
 #   description: desired GitHub repo description; omit to leave untouched
 #   owners:      desired membership of "<repo>-owners"; omit if none
+#   contributors: Contributor-tier people for this repo; omit if none
 
 repositories:
   # --- org-control: outside this scheme entirely ---------------------------
@@ -271,8 +287,8 @@ repositories:
     owners: [leonardoce, mnencia, gbartolini, fcanovai, armru]
   - name: artwork
     class: C
-    subproject: unclassified
-    reason: "Logos/brand assets — no runtime impact. Also not yet reflected in any governance/subprojects/*.md listing (see top-level CLAUDE.md's note on this gap)."
+    subproject: community-ecosystem
+    reason: "Logos/brand assets — no runtime impact. Classified under Community, Docs & Ecosystem, matching governance/subprojects/community-ecosystem.md."
     description: "Logos and brand assets for CloudNativePG."
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
   - name: chaos-testing

@@ -38,6 +38,10 @@ require "yaml"
 INFRA_ROOT = File.expand_path("..", __dir__)
 errors = []
 
+# GitHub's own repo permission names, as accepted by the teams/repos API
+# (what repo-policy.yaml's extra_team_permissions values are passed to).
+VALID_TEAM_PERMISSIONS = %w[read triage write maintain admin].freeze
+
 def load_yaml(path, errors)
   YAML.load_file(path)
 rescue Psych::SyntaxError => e
@@ -52,6 +56,7 @@ files = {
   componentowners: File.join(INFRA_ROOT, "componentowners-policy.yaml"),
   org_policy: File.join(INFRA_ROOT, "org-policy.yaml"),
   repo_policy: File.join(INFRA_ROOT, "repo-policy.yaml"),
+  people: File.join(INFRA_ROOT, "people.yaml"),
   milestones_policy: File.join(INFRA_ROOT, "milestones-policy.yaml"),
 }
 
@@ -87,6 +92,15 @@ if errors.empty?
     subproject = entry["subproject"]
     errors << "repo-tiers.yaml: #{name}: class '#{klass}' is not one of #{valid_classes.join(', ')}" unless valid_classes.include?(klass)
     errors << "repo-tiers.yaml: #{name}: subproject '#{subproject}' is not one of #{valid_subprojects.join(', ')}" unless valid_subprojects.include?(subproject)
+
+    # A Component Owner is a rung above Contributor, not alongside it:
+    # someone promoted moves between the two lists. Holding both would
+    # render them into both COMPONENT_OWNERS.md and CONTRIBUTORS.md in the
+    # same repo, which reads as two different statuses at once.
+    both = Array(entry["owners"]) & Array(entry["contributors"])
+    unless both.empty?
+      errors << "repo-tiers.yaml: #{name}: #{both.join(', ')} listed as both owner and contributor -- a promotion moves someone between the two, it doesn't add a second rung"
+    end
   end
 
   # --- check 4: every referenced team slug actually exists (per last snapshot) ---
@@ -106,6 +120,26 @@ if errors.empty?
 
   Array(data[:repo_policy]["repositories"]).each do |entry|
     Array(entry["ruleset_bypass_teams"]).each { |t| referenced_teams << ["repo-policy.yaml (#{entry['name']}, ruleset_bypass_teams)", t] }
+
+    # extra_team_permissions entries are "team:permission" pairs, so the
+    # slug has to be split back out before it can be checked like any other
+    # team reference -- and a malformed pair is worth catching here rather
+    # than in fix-repo-settings.sh's awk, which would just skip it.
+    Array(entry["extra_team_permissions"]).each do |pair|
+      slug, permission = pair.to_s.split(":", 2)
+      source = "repo-policy.yaml (#{entry['name']}, extra_team_permissions)"
+
+      if slug.to_s.empty? || permission.to_s.empty?
+        errors << "#{source}: '#{pair}' is not a 'team:permission' pair"
+        next
+      end
+
+      unless VALID_TEAM_PERMISSIONS.include?(permission)
+        errors << "#{source}: '#{permission}' is not a GitHub repo permission (#{VALID_TEAM_PERMISSIONS.join(', ')})"
+      end
+
+      referenced_teams << [source, slug]
+    end
   end
 
   referenced_teams.each do |source, slug|

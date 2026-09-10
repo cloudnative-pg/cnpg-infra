@@ -1,0 +1,99 @@
+# Display data for the people referenced by repo-tiers.yaml's `owners:` and
+# `contributors:` fields.
+#
+# Hand-maintained, like every other policy file here. Those two fields carry
+# GitHub handles only, because a handle is what the GitHub API takes; this
+# file is what turns a handle into a row a human wants to read (the rendered
+# COMPONENT_OWNERS.md and CONTRIBUTORS.md use the same Name / GitHub Handle /
+# Country columns governance/CONTRIBUTORS.md used before those lists moved
+# into each component's own repository).
+#
+# A handle with no entry here is not an error: the renderers fall back to the
+# handle alone. Same for an individual field -- a missing name renders as the
+# handle, a missing country renders as an empty cell. Nothing here grants
+# anything; access comes from repo-tiers.yaml's `owners:` and the
+# <repo>-owners team it syncs.
+#
+# Every value below is sourced from a file in the org, not inferred:
+#   - names and countries: governance/CONTRIBUTORS.md as it stood on `main`
+#     before the dev/67 rewrite, and the deleted COMPONENT-OWNERS.md
+#   - organization: governance/MAINTAINERS.md, governance/CLAUDE.md's
+#     candidate-roster working notes, or a commit email in the repo itself
+# A field nobody has recorded anywhere is left out rather than guessed --
+# these are real people, and a wrong employer or country is worse than a
+# blank one. Fill them in when the person or a maintainer confirms it.
+#
+# organization should match the employer on that person's Linux Foundation
+# ID, the same record CNCF tooling reads (see governance's CONTRIBUTOR_LADDER.md,
+# CNPG Organization Member section).
+
+people:
+  gbartolini:
+    name: "Gabriele Bartolini"
+    organization: EDB
+  fcanovai:
+    name: "Francesco Canovai"
+    organization: EDB
+  leonardoce:
+    name: "Leonardo Cecchi"
+    organization: EDB
+  mnencia:
+    name: "Marco Nenciarini"
+    organization: EDB
+  armru:
+    name: "Armando Ruocco"
+    organization: EDB
+  jbattiato:
+    name: "Jonathan Battiato"
+    organization: EDB
+    country: Italy
+  NiccoloFei:
+    name: "Niccolò Fei"
+    organization: EDB
+    country: Italy
+  litaocdl:
+    name: "Tao Li"
+    organization: EDB
+    country: China
+  FloorD:
+    name: "Floor Drees"
+    organization: EDB
+    country: Netherlands
+  gabriele-wolfox:
+    name: "Gabriele Quaresima"
+    organization: EDB
+    country: Italy
+  XploY04:
+    name: "Yash Agarwal"
+    country: India
+  itay-grudev:
+    name: "Itay Grudev"
+    country: Bulgaria
+  SaxenaAnushka102:
+    name: "Anushka Saxena"
+    country: India
+  jsilvela:
+    name: "Jaime Silvela"
+    country: Spain
+  y-tabata:
+    name: "Yoshiyuki Tabata"
+    organization: Hitachi
+    country: Japan
+  phisco:
+    name: "Philippe Scorsolini"
+    organization: Upbound
+  ardentperf:
+    name: "Jeremy Schneider"
+    organization: GEICO
+  # Names and employers here come from their own commit identities in
+  # cloudnative-pg ("Gabriele Fedi <gabriele.fedi@enterprisedb.com>",
+  # "TamaraNocentini <tamara.nocentini@enterprisedb.com>"); country
+  # confirmed by Gabriele Bartolini.
+  GabriFedi97:
+    name: "Gabriele Fedi"
+    organization: EDB
+    country: Italy
+  TamaraNocentini:
+    name: "Tamara Nocentini"
+    organization: EDB
+    country: Italy
