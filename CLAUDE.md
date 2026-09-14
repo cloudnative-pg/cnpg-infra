@@ -132,6 +132,26 @@ though `cnpg-infra`'s own workflow does that for its own changes — see
 "cnpg-infra's own repo is a deliberate exception" below; that exception
 is scoped to this repo alone.
 
+## Reviewers: the one rung that cannot use a team
+
+`governance/CONTRIBUTOR_LADDER.md` defines a **Reviewer** as someone named
+*individually* in a repo's `CODEOWNERS`, trusted with review of those paths.
+The rule to hold onto: **a team in `CODEOWNERS` means ownership, an
+individual means review.**
+
+Two mechanics drive the tooling. GitHub silently ignores a `CODEOWNERS`
+entry for anyone without `Write`, so every individual a path rule names
+must hold it or the line does nothing. And the rung deliberately implies no
+organisation membership, while GitHub teams can only contain members — so
+the access has to be a *direct collaborator* grant, which is why
+`scripts/sync-reviewer-grants.rb` exists separately from
+`sync-project-owner-teams.sh`.
+
+There is no `reviewers:` list to maintain: `componentowners-policy.yaml`'s
+`users:` entries are the list, so the record cannot drift from the rendered
+`CODEOWNERS`. The renderer puts them in each repo's `COMPONENT_OWNERS.md`
+under Reviewers, with the paths they cover.
+
 ## Branch protection: rulesets only, not classic protection
 
 Every managed repo now enforces its default branch via a GitHub Ruleset

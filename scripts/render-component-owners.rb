@@ -25,6 +25,7 @@ require_relative "lib_people"
 
 INFRA_ROOT = File.expand_path("..", __dir__)
 TIERS_FILE = File.join(INFRA_ROOT, "repo-tiers.yaml")
+COMPONENTOWNERS_FILE = File.join(INFRA_ROOT, "componentowners-policy.yaml")
 
 # Deliberately the repository root, not a deep link into a file: the
 # federated model's documents (CONTRIBUTOR_LADDER.md, subprojects/) don't
@@ -99,6 +100,40 @@ lines << ""
 lines << "| Name | GitHub Handle | Country |"
 lines << "| :--- | :--- | :--- |"
 People.sorted(owners).each { |o| lines << People.row(o) }
+lines << ""
+# Reviewers are the individuals a path rule names, which is the whole
+# definition: a team in CODEOWNERS means ownership, an individual means
+# review. Anyone who is also an owner is already in the table above, so
+# naming them on a path is extra routing rather than a second status.
+co_policy = YAML.load_file(COMPONENTOWNERS_FILE).fetch("repositories", [])
+co_entry = co_policy.find { |r| r["name"] == repo }
+reviewers = Hash.new { |h, k| h[k] = [] }
+Array(co_entry && co_entry["rules"]).each do |rule|
+  Array(rule["users"]).each do |u|
+    next if owners.include?(u)
+
+    rule["path"].to_s.split(" ").each { |path| reviewers[u] << path }
+  end
+end
+
+unless reviewers.empty?
+  lines << ""
+  lines << "## Reviewers"
+  lines << ""
+  lines << "Trusted with review of the paths below, and requested automatically on any"
+  lines << "pull request touching them. Advisory rather than blocking: the Component"
+  lines << "Owners above co-own every path, so a review here is never the only one"
+  lines << "available."
+  lines << ""
+  lines << "| Reviewer | Paths |"
+  lines << "| :--- | :--- |"
+  People.sorted(reviewers.keys).each do |u|
+    name = People.all.dig(u, "name")
+    who = name ? "#{name} ([@#{u}](https://github.com/#{u}))" : "[@#{u}](https://github.com/#{u})"
+    lines << "| #{who} | #{reviewers[u].map { |p| "`#{p}`" }.join(', ')} |"
+  end
+end
+
 lines << ""
 lines << "Component Owner is a rung of the CloudNativePG contributor ladder. A new"
 lines << "owner is added by a ⅔ vote of this repository's existing Component Owners,"
