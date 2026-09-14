@@ -96,12 +96,13 @@ however long the invite sits unaccepted.
 
 ## Landing generated ownership files in a target repo
 
-Two files in every managed repo are generated from policy here:
-`CODEOWNERS` (from `componentowners-policy.yaml`, via
-`scripts/render-codeowners.rb`) and `COMPONENT_OWNERS.md` (from
-`repo-tiers.yaml`'s `owners:`, via
-`scripts/render-component-owners.rb`). Both renderers only print to
-stdout and touch nothing.
+Several files in every managed repo come from policy here: `CODEOWNERS`
+(from `componentowners-policy.yaml`, via `scripts/render-codeowners.rb`),
+`COMPONENT_OWNERS.md` and `CONTRIBUTORS.md` (from `repo-tiers.yaml`'s
+`owners:` and `contributors:`, via `scripts/render-component-owners.rb`
+and `scripts/render-contributors.rb`), and `.gitvote.yml` (via
+`scripts/render-gitvote-config.sh`). Every renderer only prints to stdout
+and touches nothing.
 
 `scripts/sync-ownership-files.sh <repo> [--apply]` writes both into that
 repo's sibling clone, dry-run by default with a per-file diff. It also
@@ -113,9 +114,10 @@ repos are in that position today (`cloudnative-pg`, `cnpg-i`,
 `cnpg-i-machinery`, `github-test`, `postgres-extensions-containers`,
 `governance`), so without the copy the Component Owner proposal process
 simply does not exist in the repo where the operator's own promotions
-happen. It stops
-at the working tree on purpose: no commit, no push, no GitHub call. Then
-commit and open a PR in *that* repo (DCO sign-off, Conventional Commit,
+happen.
+
+The script stops at the working tree on purpose: no commit, no push, no
+GitHub call. Then commit and open a PR in *that* repo (DCO sign-off, Conventional Commit,
 `Assisted-by:` trailer).
 
 **Fetch before you branch.** These clones sit idle while PRs get merged
