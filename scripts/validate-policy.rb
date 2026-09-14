@@ -114,6 +114,21 @@ if errors.empty?
     end
   end
 
+  # Every subproject a repo can be classified under needs its committee team
+  # to exist, since subproject_committee_permission grants it by name.
+  if data[:org_policy]["subproject_committee_permission"]
+    permission = data[:org_policy]["subproject_committee_permission"]
+    unless VALID_TEAM_PERMISSIONS.include?(permission)
+      errors << "org-policy.yaml (subproject_committee_permission): '#{permission}' is not a GitHub repo permission (#{VALID_TEAM_PERMISSIONS.join(', ')})"
+    end
+
+    data[:tiers].fetch("repositories", []).map { |r| r["subproject"] }.uniq.compact.each do |sp|
+      next if %w[org-control unclassified].include?(sp)
+
+      referenced_teams << ["org-policy.yaml (subproject_committee_permission, #{sp})", "#{sp}-maintainers"]
+    end
+  end
+
   Array(data[:org_policy]["global_admin_teams"]).each { |t| referenced_teams << ["org-policy.yaml (global_admin_teams)", t] }
   Array(data[:org_policy]["global_maintain_teams"]).each { |t| referenced_teams << ["org-policy.yaml (global_maintain_teams)", t] }
   Hash(data[:org_policy]["subproject_committees"]).each_key { |t| referenced_teams << ["org-policy.yaml (subproject_committees)", t] }

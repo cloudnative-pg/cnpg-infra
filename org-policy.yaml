@@ -41,6 +41,28 @@ global_admin_teams:
 global_maintain_teams:
   - bots
 
+# subproject_committee_permission
+#   The floor each repo grants to its own subproject's maintainer committee
+#   team, derived from repo-tiers.yaml's `subproject` field rather than
+#   repeated per repo: a repo with `subproject: extensibility` grants
+#   `extensibility-maintainers`, and so on. org-control and unclassified
+#   repos have no committee and grant nothing.
+#
+#   This is what makes governance's central claim true in GitHub rather
+#   than only on paper -- that a subproject maintainer committee holds
+#   technical authority over every component in its subproject, and that
+#   the Subproject Maintainer rung carries `Maintain` across those
+#   repositories (governance/CONTRIBUTOR_LADDER.md's tier table). Until it
+#   was set, those two statements described access nobody held.
+#
+#   Enforcement only ever raises, like every other grant here: a committee
+#   team already holding `admin` somewhere keeps it.
+#
+#   Deliberately not `admin`: a committee reviews, merges and releases
+#   within its subproject, which `maintain` covers. Repository settings,
+#   secrets and team membership stay with the Infrastructure Team.
+subproject_committee_permission: maintain
+
 # base_repository_permission
 #   The org's "base permissions" (GitHub API field: default_repository_permission)
 #   — what a plain org member (someone with no elevated org role and on no

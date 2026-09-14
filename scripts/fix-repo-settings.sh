@@ -69,8 +69,10 @@
 #     left completely alone (not blanked) — this is an opt-in override, the
 #     only field in any policy file here that can *change* something a repo
 #     already has rather than just floor it.
-#   - Team repo access: org-policy.yaml's global_admin_teams and
-#     global_maintain_teams, plus repo-policy.yaml's per-repo
+#   - Team repo access: org-policy.yaml's global_admin_teams,
+#     global_maintain_teams and subproject_committee_permission (which
+#     grants each repo's own <subproject>-maintainers team that floor,
+#     derived from repo-tiers.yaml), plus repo-policy.yaml's per-repo
 #     extra_team_permissions — each listed team is raised
 #     to at least that permission on every managed repo if it's currently
 #     lower (or has none at all), never downgraded if it's already
@@ -181,6 +183,19 @@ policy_extra_team_permissions() { # $1 = repo name -> one "team:permission" pair
       exit
     }
   ' "$POLICY"
+}
+
+policy_subproject() { # $1 = repo name -> prints its governance subproject, or "" if unlisted
+  [ -f "$TIERS" ] || return
+  awk -v want="$1" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && /^    subproject:/ { print $2; exit }
+  ' "$TIERS"
+}
+
+org_policy_scalar() { # $1 = key -> prints its scalar value from org-policy.yaml, or "" if absent
+  [ -f "$ORGPOLICY" ] || return
+  awk -v key="$1:" '$1 == key { print $2; exit }' "$ORGPOLICY"
 }
 
 policy_tier() { # $1 = repo name -> prints class (A/B/C), or "C" if unlisted/n/a
@@ -415,6 +430,26 @@ while read -r t; do
   [ "$(permission_rank "$cur")" -lt "$(permission_rank maintain)" ] && global_team_diffs+=("$t|maintain|$cur")
 done < <(policy_global_teams global_maintain_teams)
 
+# --- org-policy.yaml's subproject_committee_permission: every repo grants its
+# own subproject's maintainer committee team that floor, derived from
+# repo-tiers.yaml's `subproject` rather than repeated per repo. This is what
+# makes governance's "the committee has technical authority over every
+# component in its subproject" true in GitHub rather than only on paper.
+# org-control and unclassified repos have no committee, so they get nothing.
+committee_team_diffs=() # each entry: "team|desired_permission|current_permission"
+committee_permission="$(org_policy_scalar subproject_committee_permission)"
+repo_subproject="$(policy_subproject "$repo")"
+case "$repo_subproject" in
+  core|supply-chain|community-ecosystem|extensibility)
+    if [ -n "$committee_permission" ]; then
+      committee_team="${repo_subproject}-maintainers"
+      cur="$(team_repo_permission "$committee_team" "$full")"
+      [ "$(permission_rank "$cur")" -lt "$(permission_rank "$committee_permission")" ] \
+        && committee_team_diffs+=("$committee_team|$committee_permission|$cur")
+    fi
+    ;;
+esac
+
 # --- repo-policy.yaml's extra_team_permissions: a per-repo grant on top of
 # the org-wide floors above, for a team this repo's CODEOWNERS names but
 # GitHub would otherwise ignore, since it only honors an owner holding
@@ -579,6 +614,11 @@ for entry in "${extra_team_diffs[@]:-}"; do
   IFS='|' read -r et_team et_desired et_current <<< "$entry"
   diff_line "team '$et_team' permission (repo-policy.yaml)" "$et_current" "$et_desired"
 done
+for entry in "${committee_team_diffs[@]:-}"; do
+  [ -z "$entry" ] && continue
+  IFS='|' read -r ct_team ct_desired ct_current <<< "$entry"
+  diff_line "team '$ct_team' permission (org-policy.yaml, subproject committee)" "$ct_current" "$ct_desired"
+done
 for bt in "${bypass_teams_added[@]:-}"; do
   [ -z "$bt" ] && continue
   diff_line "team '$bt' ruleset bypass on $default_branch (repo-policy.yaml)" "no bypass" "always (push + review-free merge)"
@@ -603,8 +643,9 @@ echo
 echo "Untouched by this script (preserved as-is): required status check names,"
 echo "admin enforcement, signed-commit requirement, any other ruleset on the"
 echo "repo, visibility, collaborators, and any team's access other than"
-echo "org-policy.yaml's global_admin_teams/global_maintain_teams and"
-echo "repo-policy.yaml's extra_team_permissions."
+echo "org-policy.yaml's global_admin_teams/global_maintain_teams/"
+echo "subproject_committee_permission and repo-policy.yaml's"
+echo "extra_team_permissions."
 echo
 
 if [ "$apply" != "true" ]; then
@@ -684,6 +725,14 @@ for entry in "${extra_team_diffs[@]:-}"; do
   gh api -X PUT "orgs/${ORG}/teams/${et_team}/repos/${full}" -f "permission=${et_desired}" >/dev/null \
     && echo "  ✓ team '$et_team' granted '$et_desired' (was '$et_current')" \
     || echo "  ✗ failed to grant '$et_team' '$et_desired' on $full"
+done
+
+for entry in "${committee_team_diffs[@]:-}"; do
+  [ -z "$entry" ] && continue
+  IFS='|' read -r ct_team ct_desired ct_current <<< "$entry"
+  gh api -X PUT "orgs/${ORG}/teams/${ct_team}/repos/${full}" -f "permission=${ct_desired}" >/dev/null \
+    && echo "  ✓ team '$ct_team' granted '$ct_desired' (was '$ct_current')" \
+    || echo "  ✗ failed to grant '$ct_team' '$ct_desired' on $full"
 done
 
 echo
