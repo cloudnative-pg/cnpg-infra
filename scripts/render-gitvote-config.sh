@@ -60,6 +60,19 @@ team_slug_for() { # $1 = repo name -> "<repo>-owners" slug (matches sync-project
   echo "${base}-owners" | tr '.' '-'
 }
 
+committee_team_for() { # $1 = repo -> its <subproject>-maintainers team, or "" if it has no committee
+  local tiers="${INFRA_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/repo-tiers.yaml"
+  [ -f "$tiers" ] || return
+  local sp
+  sp="$(awk -v want="$1" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && /^    subproject:/ { print $2; exit }
+  ' "$tiers")"
+  case "$sp" in
+    core|supply-chain|community-ecosystem|extensibility) echo "${sp}-maintainers" ;;
+  esac
+}
+
 gitvote_voter_teams() { # $1 = repo, $2 = category -> one team slug per line
   local repo="$1" category="$2"
   mapfile -t override < <(gitvote_policy_voters_override "$repo")
@@ -83,6 +96,9 @@ render_gitvote_config() { # $1 = repo, $2 = category (may be empty)
   # keeping only the first.
   local team_lines team="${teams[0]}"
   team_lines="$(printf '        - %s\n' "${teams[@]}")"
+  local committee_team committee_lines=""
+  committee_team="$(committee_team_for "$repo")"
+  [ -n "$committee_team" ] && committee_lines="        - ${committee_team}"
 
   if [ "$category" = "org-control" ]; then
     cat <<EOF
@@ -136,11 +152,14 @@ EOF
 # Voters are this repository's own ${team} GitHub team (repo-tiers.yaml's
 # owners field is what populates it; see sync-project-owner-teams.sh).
 # Component Owner-level decisions per CONTRIBUTOR_LADDER.md are scoped to
-# the repository, not org-wide. The two profiles below mirror
+# the repository, not org-wide. The profiles below mirror
 # CONTRIBUTOR_LADDER.md's two repository-level thresholds:
 #   - default:         simple majority, Contributor promotion/removal
 #   - component-owner:  two-thirds majority, Component Owner
 #                        promotion/removal (/vote-component-owner)
+# plus, where this repo belongs to a subproject, the same two scoped to
+# that subproject's maintainer committee, for the case where this repo has
+# too few named owners to decide for itself.
 automation:
   enabled: false
   rules:
@@ -168,6 +187,37 @@ ${team_lines}
     close_on_passing: true
     close_on_passing_min_wait: "10 minutes"
 EOF
+    # CONTRIBUTOR_LADDER.md sends a promotion to this repo's subproject
+    # maintainer committee when the repo has too few named Component Owners
+    # to decide for itself: none at all for a Contributor vote, fewer than
+    # three for a Component Owner vote. The two profiles above only know
+    # this repo's own owners team, so without these that documented
+    # fallback has nowhere to be held. Same thresholds, different
+    # electorate.
+    if [ -n "$committee_team" ]; then
+      cat <<EOF
+
+  committee:
+    duration: 1w
+    pass_threshold: 50
+    allowed_voters:
+      teams:
+${committee_lines}
+      users: []
+    close_on_passing: true
+    close_on_passing_min_wait: "10 minutes"
+
+  committee-component-owner:
+    duration: 1w
+    pass_threshold: 66
+    allowed_voters:
+      teams:
+${committee_lines}
+      users: []
+    close_on_passing: true
+    close_on_passing_min_wait: "10 minutes"
+EOF
+    fi
   fi
 }
 
