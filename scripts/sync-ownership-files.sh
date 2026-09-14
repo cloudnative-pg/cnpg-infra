@@ -9,6 +9,9 @@
 #   CONTRIBUTORS.md      rendered from repo-tiers.yaml's `contributors:`
 #                        (scripts/render-contributors.rb) -- only for a repo
 #                        that has any; skipped everywhere else
+#   .gitvote.yml         rendered from gitvote-policy.yaml
+#                        (scripts/render-gitvote-config.sh) -- the electorate
+#                        and thresholds for that repo's own votes
 #   .github/ISSUE_TEMPLATE/*.yml
 #                        copied verbatim from cloudnative-pg/.github's
 #                        default branch, but ONLY into a repo that already
@@ -35,6 +38,9 @@ MANIFEST="$INFRA_ROOT/generated/managed-repos.yaml"
 
 command -v ruby >/dev/null 2>&1 || { echo "error: ruby is required" >&2; exit 1; }
 
+# shellcheck source=./render-gitvote-config.sh disable=SC1091
+source "$(dirname "${BASH_SOURCE[0]}")/render-gitvote-config.sh"
+
 repo="${1:-}"
 apply=false
 [ "${2:-}" = "--apply" ] && apply=true
@@ -60,12 +66,42 @@ echo
 
 changed=false
 
+# $1 = path within the target clone, $2 = human label, $3 = desired content
+stage_file() {
+  local target="$clone/$1" label="$2" content="$3" tmp
+
+  if [ -f "$target" ] && [ "$content" = "$(cat "$target")" ]; then
+    echo "--- $1: already up to date"
+    echo
+    return 0
+  fi
+
+  changed=true
+  echo "--- $1: $([ -f "$target" ] && echo "would be updated ($label)" || echo "would be created ($label)")"
+  tmp="$(mktemp)"
+  printf '%s\n' "$content" > "$tmp"
+  if [ -f "$target" ]; then
+    diff -u --label "a/$1" "$target" --label "b/$1" "$tmp"
+  else
+    diff -u --label "a/$1" /dev/null --label "b/$1" "$tmp"
+  fi
+  echo
+
+  if [ "$apply" = "true" ]; then
+    mkdir -p "$(dirname "$target")"
+    mv "$tmp" "$target"
+    echo "  ✓ wrote $target"
+    echo
+  else
+    rm -f "$tmp"
+  fi
+}
+
 # $1 = filename in the target clone, $2 = renderer script, $3 = human label
 render_one() {
-  local target="$clone/$1" renderer="$2" label="$3"
-  local rendered status tmp
+  local rendered status
 
-  rendered="$(ruby "$INFRA_ROOT/scripts/$renderer" "$repo" 2>&1)"
+  rendered="$(ruby "$INFRA_ROOT/scripts/$2" "$repo" 2>&1)"
   status=$?
   if [ $status -ne 0 ]; then
     # A renderer refusing to render is normal, not a failure of this run:
@@ -76,30 +112,20 @@ render_one() {
     return 0
   fi
 
-  if [ -f "$target" ] && [ "$rendered" = "$(cat "$target")" ]; then
-    echo "--- $1: already up to date"
+  stage_file "$1" "$3" "$rendered"
+}
+
+stage_gitvote_config() {
+  local category reason
+  if [ "$(gitvote_policy_excluded "$repo")" = "true" ]; then
+    reason="$(gitvote_policy_reason "$repo")"
+    echo "--- .gitvote.yml: skipped"
+    echo "    marked excluded in gitvote-policy.yaml: $reason"
     echo
     return 0
   fi
-
-  changed=true
-  echo "--- $1: $([ -f "$target" ] && echo "would be updated ($label)" || echo "would be created ($label)")"
-  tmp="$(mktemp)"
-  printf '%s\n' "$rendered" > "$tmp"
-  if [ -f "$target" ]; then
-    diff -u --label "a/$1" "$target" --label "b/$1" "$tmp"
-  else
-    diff -u --label "a/$1" /dev/null --label "b/$1" "$tmp"
-  fi
-  echo
-
-  if [ "$apply" = "true" ]; then
-    mv "$tmp" "$target"
-    echo "  ✓ wrote $target"
-    echo
-  else
-    rm -f "$tmp"
-  fi
+  category="$(gitvote_policy_category "$repo")"
+  stage_file ".gitvote.yml" "gitvote-policy.yaml" "$(render_gitvote_config "$repo" "$category")"
 }
 
 render_one "CODEOWNERS" "render-codeowners.rb" "componentowners-policy.yaml"
@@ -107,6 +133,10 @@ render_one "COMPONENT_OWNERS.md" "render-component-owners.rb" "repo-tiers.yaml"
 # Expected to skip on most repos: only a repo with a `contributors:` entry
 # gets a CONTRIBUTORS.md at all, rather than 35 empty files across the org.
 render_one "CONTRIBUTORS.md" "render-contributors.rb" "repo-tiers.yaml"
+# Without this file a repo's /vote-component-owner does nothing at all: the
+# gitvote app reads each repository's own config, and today only governance
+# has one.
+stage_gitvote_config
 
 # GitHub serves the org-wide issue templates in cloudnative-pg/.github only
 # to repos that have no `.github/ISSUE_TEMPLATE/` of their own. A repo with

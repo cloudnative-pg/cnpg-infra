@@ -75,4 +75,4 @@ repositories:
   - name: governance
     category: org-control
     excluded: true
-    reason: "Its .gitvote.yml is maintained directly in that repo, not rendered from here -- the allowed_voters fix (dev/fix-gitvote-governance-scope) already landed as its own small PR and scopes both profiles to steering-committee, matching this file's org-control template. Listed here (rather than left out of this file) so the audit report still accounts for all five org-control repos, and so a future contributor doesn't add a bespoke entry for it by mistake."
+    reason: "Its .gitvote.yml is maintained directly in that repo, not rendered from here, and has outgrown the org-control template: the federated governance model adds a profile per subproject committee plus a -removal variant of each, and an automation rule that opens a two-thirds Steering vote on any PR touching GOVERNANCE.md or CONTRIBUTOR_LADDER.md. Listed here (rather than left out of this file) so the audit report still accounts for all five org-control repos, and so a future contributor doesn't add a bespoke entry for it by mistake."
