@@ -1,0 +1,47 @@
+# Hand-maintained desired-state list of GitHub issue labels that the
+# organisation's issue templates depend on.
+#
+# Why this file exists: a GitHub issue form silently drops a label that
+# doesn't exist in the repository the issue is opened in. Nothing fails, no
+# warning appears, the issue is simply created untagged -- so a template
+# that carries `labels: ["component-proposal"]` looks correct forever while
+# never labelling anything. Every label referenced by a template therefore
+# has to exist wherever that template can be used, which for an org-wide
+# default in cloudnative-pg/.github means every managed repository.
+#
+# Nothing regenerates this file -- edit by hand, then run
+# scripts/sync-labels.rb (dry run) and re-run with --apply.
+#
+# Fields per label:
+#   name         the label itself, matched case-insensitively by GitHub
+#   color        six hex digits, no leading '#'
+#   description  shown in the label picker; kept short
+#   scope        all       -> every repo in generated/managed-repos.yaml
+#                <repo>    -> that repository only
+#
+# Deliberately NOT listed here: the gitvote/* labels (gitvote/open,
+# gitvote/passed and friends). The gitvote app creates and moves those
+# itself, and a policy file that also claimed them would fight it.
+
+labels:
+  # Org-wide: the Component Owner proposal template is an org-wide default
+  # in cloudnative-pg/.github, and an issue from it is opened in whichever
+  # repository the nominee is being proposed for.
+  - name: component-owner-proposal
+    color: 0E8A16
+    description: "Proposal to make someone a Component Owner of this repository"
+    scope: all
+
+  # governance-only: these three back the templates that live in that repo.
+  - name: committee-membership
+    color: 1D76DB
+    description: "Adding or removing a subproject committee member"
+    scope: governance
+  - name: component-proposal
+    color: 5319E7
+    description: "Proposal to add a component to a subproject"
+    scope: governance
+  - name: team-membership
+    color: B60205
+    description: "Infrastructure Team or Security Response Team membership"
+    scope: governance
