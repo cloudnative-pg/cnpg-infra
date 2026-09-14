@@ -9,6 +9,11 @@
 #   CONTRIBUTORS.md      rendered from repo-tiers.yaml's `contributors:`
 #                        (scripts/render-contributors.rb) -- only for a repo
 #                        that has any; skipped everywhere else
+#   .github/ISSUE_TEMPLATE/*.yml
+#                        copied verbatim from cloudnative-pg/.github's
+#                        default branch, but ONLY into a repo that already
+#                        has templates of its own, since those are exactly
+#                        the repos GitHub stops serving the org-wide ones to
 #
 # Both renderers only ever printed to stdout, which left "write it into
 # the clone, commit, open a PR" as a manual step done by hand every time
@@ -103,8 +108,67 @@ render_one "COMPONENT_OWNERS.md" "render-component-owners.rb" "repo-tiers.yaml"
 # gets a CONTRIBUTORS.md at all, rather than 35 empty files across the org.
 render_one "CONTRIBUTORS.md" "render-contributors.rb" "repo-tiers.yaml"
 
+# GitHub serves the org-wide issue templates in cloudnative-pg/.github only
+# to repos that have no `.github/ISSUE_TEMPLATE/` of their own. A repo with
+# even one template of its own stops inheriting all of them, silently, so
+# every org-wide template has to be copied in for those repos or the
+# process it describes is simply unavailable there.
+copy_org_templates() {
+  local org_repo="$INFRA_ROOT/../.github" target_dir="$clone/.github/ISSUE_TEMPLATE"
+  local name content tmp
+
+  [ "$repo" = ".github" ] && return 0
+  if [ ! -d "$org_repo/.git" ]; then
+    echo "--- org issue templates: skipped"
+    echo "    no sibling clone of cloudnative-pg/.github to copy from"
+    echo
+    return 0
+  fi
+  if [ ! -d "$target_dir" ]; then
+    echo "--- org issue templates: not needed"
+    echo "    this repo has no ISSUE_TEMPLATE of its own, so it inherits the org-wide ones"
+    echo
+    return 0
+  fi
+
+  git -C "$org_repo" fetch -q origin 2>/dev/null
+  while read -r path; do
+    [ -z "$path" ] && continue
+    name="$(basename "$path")"
+    [ "$name" = "config.yml" ] && continue
+    content="$(git -C "$org_repo" show "origin/main:$path" 2>/dev/null)"
+    [ -z "$content" ] && continue
+
+    if [ -f "$target_dir/$name" ] && [ "$content" = "$(cat "$target_dir/$name")" ]; then
+      echo "--- .github/ISSUE_TEMPLATE/$name: already up to date"
+      echo
+      continue
+    fi
+
+    changed=true
+    echo "--- .github/ISSUE_TEMPLATE/$name: $([ -f "$target_dir/$name" ] && echo "would be updated" || echo "would be copied") (cloudnative-pg/.github)"
+    tmp="$(mktemp)"
+    printf '%s\n' "$content" > "$tmp"
+    if [ -f "$target_dir/$name" ]; then
+      diff -u --label "a/$name" "$target_dir/$name" --label "b/$name" "$tmp"
+    else
+      diff -u --label "a/$name" /dev/null --label "b/$name" "$tmp"
+    fi
+    echo
+    if [ "$apply" = "true" ]; then
+      mv "$tmp" "$target_dir/$name"
+      echo "  ✓ wrote $target_dir/$name"
+      echo
+    else
+      rm -f "$tmp"
+    fi
+  done < <(git -C "$org_repo" ls-tree -r --name-only origin/main -- .github/ISSUE_TEMPLATE 2>/dev/null)
+}
+
+copy_org_templates
+
 if [ "$changed" = "false" ]; then
-  echo "(nothing to do -- both files already match policy)"
+  echo "(nothing to do -- every file already matches policy)"
   exit 0
 fi
 
@@ -117,9 +181,9 @@ cat <<EOF
 Files written to the working tree only. Nothing is committed, pushed, or
 sent to GitHub. To land them, from $clone:
 
-  git switch -c dev/sync-ownership-files
-  git add CODEOWNERS COMPONENT_OWNERS.md
-  git commit -s -m "chore: sync ownership files with cnpg-infra policy"
+  git fetch origin && git checkout -B dev/sync-ownership-files origin/HEAD
+  git add -A
+  git commit -s -m "chore: sync generated files with cnpg-infra policy"
   gh pr create
 
 Add an 'Assisted-by:' trailer if a model helped, separated from

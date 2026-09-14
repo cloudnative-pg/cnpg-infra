@@ -104,7 +104,16 @@ Two files in every managed repo are generated from policy here:
 stdout and touch nothing.
 
 `scripts/sync-ownership-files.sh <repo> [--apply]` writes both into that
-repo's sibling clone, dry-run by default with a per-file diff. It stops
+repo's sibling clone, dry-run by default with a per-file diff. It also
+copies the org-wide issue templates from `cloudnative-pg/.github` into any
+repo that has an `ISSUE_TEMPLATE` folder of its own: GitHub serves org
+defaults **only** to repos with no templates at all, and a repo with one
+template of its own silently stops inheriting every org-wide one. Six
+repos are in that position today (`cloudnative-pg`, `cnpg-i`,
+`cnpg-i-machinery`, `github-test`, `postgres-extensions-containers`,
+`governance`), so without the copy the Component Owner proposal process
+simply does not exist in the repo where the operator's own promotions
+happen. It stops
 at the working tree on purpose: no commit, no push, no GitHub call. Then
 commit and open a PR in *that* repo (DCO sign-off, Conventional Commit,
 `Assisted-by:` trailer).
