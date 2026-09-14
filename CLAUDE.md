@@ -216,80 +216,21 @@ security cleanup without checking with Gabriele first.
   `if . == null then <default> else . end` instead. This bug once made
   `fix-repo-settings.sh` silently flip a real `false` back to `true`.
 
-## In-flight work (as of 2026-09-07) — resume from here
+## State as of 2026-09-14
 
-Snapshot of an onboarding effort in progress, kept here only until it's
-fully wrapped up — trim this section once everything below is resolved.
+Everything below is done and pushed; `main` is current.
 
-**Done:**
-- Onboarded two external forks that weren't previously managed at all:
-  `community-operators` (fork of `k8s-operatorhub/community-operators`)
-  and `kopia` (fork of `kopia/kopia`, default branch `klio`, not `main`
-  — see the branch-protection section above). Both cloned as siblings,
-  added to `generated/managed-repos.yaml`, classified class C /
-  subproject `unclassified` in `repo-tiers.yaml`, given a `*` CODEOWNERS
-  rule in `componentowners-policy.yaml`, and given a `<repo>-owners`
-  team (`community-operators-owners`, `kopia-owners`) seeded with the 5
-  current CNPG maintainers (`armru`, `fcanovai`, `gbartolini`,
-  `leonardoce`, `mnencia` — from `governance/MAINTAINERS.md`), plus
-  `gabriele-wolfox` (Gabriele Quaresima) on `kopia-owners` specifically.
-  Both repos' branch rulesets were raised to the class-C floor via
-  `fix-repo-settings.sh --apply` and verified clean via
-  `check-repo-settings.sh`. All policy-file changes committed and pushed
-  directly to this repo's `main` (commit `20073b2`).
-- Rendered and landed a basic CODEOWNERS file in `klio` — open as
-  [cloudnative-pg/klio#239](https://github.com/cloudnative-pg/klio/pull/239),
-  not yet merged. Ended up two-part: `* @cloudnative-pg/klio-owners`,
-  plus `jlong49` (John Long) named individually as a reviewer, per
-  Gabriele's explicit call that he should be able to review without
-  being made a `klio-owners` team member. An earlier check in this same
-  session had shown `jlong49` as a live `klio-owners` team member (which
-  would have been genuine drift against `repo-tiers.yaml`, which never
-  listed him) — a second, closer look showed that reading was stale: he
-  was actually only a **direct repo collaborator with `read`**, not a
-  team member at all. Corrected by: adding him to
-  `componentowners-policy.yaml`'s `klio` `*` rule as an individual user
-  (not touching `repo-tiers.yaml`'s owners — he's intentionally not an
-  owner), and raising his direct collaborator grant from `read` to
-  `write` via `gh api`, since CODEOWNERS silently drops a named
-  individual who doesn't hold write+ access. That direct grant is *not*
-  tracked by any script here (`sync-project-owner-teams.sh` only manages
-  the `<repo>-owners` team) — if it's ever revoked by hand, he'd stop
-  being a functional code owner even though `componentowners-policy.yaml`
-  still names him.
+- **Generated per-repo files.** `sync-ownership-files.sh <repo> [--apply]` stages a repository's whole set into its sibling clone: `CODEOWNERS`, `COMPONENT_OWNERS.md`, `CONTRIBUTORS.md` where it has any, `.gitvote.yml`, and the org-wide issue templates where the repo has templates of its own. 33 PRs are open across the org carrying these; `governance` landed its own in the federated-model PR.
+- **Committee access.** `org-policy.yaml`'s `subproject_committee_permission` grants each repo's own `<subproject>-maintainers` team `maintain`, derived from `repo-tiers.yaml`. Applied org-wide. `repo-policy.yaml`'s `extra_team_permissions` grants the four committee teams `write` on `governance`, which is what makes its `subprojects/*.md` CODEOWNERS lines resolve.
+- **Labels.** `labels-policy.yaml` + `sync-labels.rb`. A GitHub issue form silently drops a label the repo lacks, so every label a template references must exist wherever that template can be used. 38 created across 35 repos.
+- **Reviewers.** `sync-reviewer-grants.rb` reconciles the `Write` that people named individually in `componentowners-policy.yaml` need. Direct grants, not a team: the rung implies no org membership and teams can only hold members. There is no `reviewers:` list; the CODEOWNERS policy *is* the list, so it cannot drift.
 
-**Added 2026-09-09, out of the `governance` `dev/67` review:**
-- `repo-policy.yaml` gained `extra_team_permissions`, and its `governance`
-  entry grants `write` to the four `<subproject>-maintainers` teams.
-  Reason: that repo's CODEOWNERS scopes each `subprojects/*.md` to its
-  committee team, but none of the four held any permission there, so
-  GitHub treated all four lines as unknown owners. **Dry-run only so
-  far** — `./scripts/fix-repo-settings.sh governance --apply` has not
-  been run; ask before running it.
-- New `scripts/render-component-owners.rb` and
-  `scripts/sync-ownership-files.sh` (see "Landing generated ownership
-  files in a target repo" above). `governance`'s docs now point at each
-  component's `COMPONENT_OWNERS.md` as the public record of who owns it,
-  so those files need generating and landing per repo — nothing has been
-  landed in any target repo yet.
-- Still to do here: require the passed vote issue's URL on an `owners:`
-  change (the edit records a decision, never makes one), and render a
-  fallback-electorate profile for a repo with too few named owners, where
-  `CONTRIBUTOR_LADDER.md` says the subproject committee (then Steering)
-  decides but the rendered electorate is `<repo>-owners` only.
-- `gitvote-policy.yaml`'s reason for excluding `governance` is now stale:
-  that repo's `.gitvote.yml` has eleven profiles and an `automation`
-  block, and names its ⅔ profile `governance` where the org-control
-  template names it `steering`.
+**Two API traps, both found the hard way, both now handled in code:**
 
-**Not done yet — pick back up here:**
-- `community-operators` and `kopia` themselves still have no real
-  `CODEOWNERS` file on their default branch (confirmed by
-  `check-repo-settings.sh`'s audit) — same treatment as `klio` above
-  (`render-codeowners.rb <repo>` → write → branch → PR) still needs
-  doing for both.
-- Neither `community-operators` nor `kopia` has a `LICENSE` file
-  detectable by `check-repo-settings.sh` on their default branch — worth
-  a look, but not something this tooling can create on its own (an
-  external fork's LICENSE is a legal/upstream question, not a settings
-  gap).
+- The teams/repos endpoint takes `pull`/`push`/`admin` plus `triage`/`maintain`, and 422s on `read`/`write`. `maintain` being valid in both vocabularies hid this for days while the `write` grants failed silently. `fix-repo-settings.sh` translates on the way out and now exits non-zero if any grant failed.
+- `gh api -f` on a GET sends a *body* field. `repos/.../collaborators -f affiliation=direct` therefore returns every collaborator, not the direct ones. Put filters in the query string.
+
+**Access drift is a real category here.** Removing someone from a roster or a CODEOWNERS file does not revoke their repository permission; they are separate mechanisms, and the trap section below is not theoretical. Four unexplained direct grants at write or above were found and removed on 2026-09-14 (`jsilvela`, `jbattiato` on `cloudnative-pg`; `NiccoloFei` admin on `cnpg-i-hello-world`; `jbattiato` on `plugin-barman-cloud`). An org-wide scan is clean as of then, but nothing audits this on a schedule: the scan was a throwaway script, and folding it into `check-repo-settings.sh` is the obvious next improvement.
+
+**Smaller things not done:** `create-new-repo.sh` doesn't call `sync-labels.rb`, so a new repo starts without the labels its inherited templates reference; an `owners:`/`contributors:` change should cite the passed vote issue's URL and nothing enforces that.
+
