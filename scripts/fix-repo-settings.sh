@@ -252,6 +252,19 @@ policy_global_teams() { # $1 = "global_admin_teams" | "global_maintain_teams" ->
   ' "$ORGPOLICY"
 }
 
+api_permission() { # $1 = permission name -> the name the teams/repos API accepts
+  # GitHub's PUT /orgs/{org}/teams/{team}/repos/{owner}/{repo} takes the
+  # legacy vocabulary: pull/push/admin, plus triage/maintain. Passing the
+  # modern "read"/"write" gets a 422 Validation Failed, which is how the
+  # governance committee grants silently failed for days: "maintain" is
+  # valid in both vocabularies, so the org-wide grants worked and hid it.
+  case "$1" in
+    read)  echo pull ;;
+    write) echo push ;;
+    *)     echo "$1" ;;
+  esac
+}
+
 permission_rank() { # $1 = permission name -> integer rank, higher = stricter
   case "$1" in
     admin) echo 5 ;;
@@ -653,6 +666,7 @@ if [ "$apply" != "true" ]; then
   exit 0
 fi
 
+grant_failures=0
 echo "Applying..."
 
 if [ -n "$existing_ruleset_id" ]; then
@@ -714,26 +728,40 @@ fi
 for entry in "${global_team_diffs[@]:-}"; do
   [ -z "$entry" ] && continue
   IFS='|' read -r gt_team gt_desired gt_current <<< "$entry"
-  gh api -X PUT "orgs/${ORG}/teams/${gt_team}/repos/${full}" -f "permission=${gt_desired}" >/dev/null \
-    && echo "  ✓ team '$gt_team' granted '$gt_desired' (was '$gt_current')" \
-    || echo "  ✗ failed to grant '$gt_team' '$gt_desired' on $full"
+  if gh api -X PUT "orgs/${ORG}/teams/${gt_team}/repos/${full}" -f "permission=$(api_permission "$gt_desired")" >/dev/null; then
+    echo "  ✓ team '$gt_team' granted '$gt_desired' (was '$gt_current')"
+  else
+    echo "  ✗ failed to grant '$gt_team' '$gt_desired' on $full"
+    grant_failures=$((grant_failures + 1))
+  fi
 done
 
 for entry in "${extra_team_diffs[@]:-}"; do
   [ -z "$entry" ] && continue
   IFS='|' read -r et_team et_desired et_current <<< "$entry"
-  gh api -X PUT "orgs/${ORG}/teams/${et_team}/repos/${full}" -f "permission=${et_desired}" >/dev/null \
-    && echo "  ✓ team '$et_team' granted '$et_desired' (was '$et_current')" \
-    || echo "  ✗ failed to grant '$et_team' '$et_desired' on $full"
+  if gh api -X PUT "orgs/${ORG}/teams/${et_team}/repos/${full}" -f "permission=$(api_permission "$et_desired")" >/dev/null; then
+    echo "  ✓ team '$et_team' granted '$et_desired' (was '$et_current')"
+  else
+    echo "  ✗ failed to grant '$et_team' '$et_desired' on $full"
+    grant_failures=$((grant_failures + 1))
+  fi
 done
 
 for entry in "${committee_team_diffs[@]:-}"; do
   [ -z "$entry" ] && continue
   IFS='|' read -r ct_team ct_desired ct_current <<< "$entry"
-  gh api -X PUT "orgs/${ORG}/teams/${ct_team}/repos/${full}" -f "permission=${ct_desired}" >/dev/null \
-    && echo "  ✓ team '$ct_team' granted '$ct_desired' (was '$ct_current')" \
-    || echo "  ✗ failed to grant '$ct_team' '$ct_desired' on $full"
+  if gh api -X PUT "orgs/${ORG}/teams/${ct_team}/repos/${full}" -f "permission=$(api_permission "$ct_desired")" >/dev/null; then
+    echo "  ✓ team '$ct_team' granted '$ct_desired' (was '$ct_current')"
+  else
+    echo "  ✗ failed to grant '$ct_team' '$ct_desired' on $full"
+    grant_failures=$((grant_failures + 1))
+  fi
 done
 
 echo
+if [ "$grant_failures" -gt 0 ]; then
+  echo "Done with $grant_failures failed team grant(s) -- see the ✗ lines above." >&2
+  echo "Re-run ./check-repo-settings.sh $repo to verify."
+  exit 1
+fi
 echo "Done. Re-run ./check-repo-settings.sh $repo to verify."
