@@ -14,9 +14,12 @@
 # anything; access comes from repo-tiers.yaml's `owners:` and the
 # <repo>-owners team it syncs.
 #
-# Every value below is sourced from a file in the org, not inferred:
+# Every value below is sourced from a file in the org, or confirmed by the
+# person or a maintainer, never inferred:
 #   - names and countries: governance/CONTRIBUTORS.md as it stood on `main`
-#     before the dev/67 rewrite, and the deleted COMPONENT-OWNERS.md
+#     before the dev/67 rewrite, and the deleted COMPONENT-OWNERS.md; the
+#     five maintainers' own country confirmed by Gabriele Bartolini on
+#     2026-09-14
 #   - organization: governance/MAINTAINERS.md, a commit email in the repo
 #     itself, or confirmation from a maintainer
 # A field nobody has recorded anywhere is left out rather than guessed --
@@ -31,18 +34,23 @@ people:
   gbartolini:
     name: "Gabriele Bartolini"
     organization: EDB
+    country: Italy
   fcanovai:
     name: "Francesco Canovai"
     organization: EDB
+    country: Italy
   leonardoce:
     name: "Leonardo Cecchi"
     organization: EDB
+    country: Italy
   mnencia:
     name: "Marco Nenciarini"
     organization: EDB
+    country: Italy
   armru:
     name: "Armando Ruocco"
     organization: EDB
+    country: Italy
   jbattiato:
     name: "Jonathan Battiato"
     organization: EDB
