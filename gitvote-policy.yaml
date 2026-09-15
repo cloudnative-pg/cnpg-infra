@@ -16,10 +16,14 @@
 #   team (repo-tiers.yaml's `owners` field is what populates it; see
 #   sync-project-owner-teams.sh), mirroring CONTRIBUTOR_LADDER.md's two
 #   repository-level thresholds:
-#     - default:         pass_threshold 50 (simple majority) -- Contributor
+#     - default:         pass_threshold 50.01 (simple majority) -- Contributor
 #                         promotion/removal
-#     - component-owner: pass_threshold 66 (two-thirds) -- Component Owner
+#     - component-owner: pass_threshold 66.66 (two-thirds) -- Component Owner
 #                         promotion/removal
+#   The thresholds are fractional on purpose: gitvote passes a vote on
+#   `in_favor_percentage >= pass_threshold`, so a flat 50 lets an
+#   even-sized electorate tie 2-2 and still pass, and a flat 66 sits just
+#   under a true two-thirds. See render-gitvote-config.sh for the math.
 #   Rendered in full by scripts/check-gitvote-config.sh and
 #   scripts/fix-gitvote-config.sh; see either script for the exact content.
 #

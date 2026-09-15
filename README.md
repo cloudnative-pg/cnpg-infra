@@ -140,7 +140,12 @@ A repo with its own `<repo>-owners` team (see `repo-tiers.yaml`'s
 `owners` field) gets two profiles, both scoped to that team, mirroring
 `CONTRIBUTOR_LADDER.md`'s two repository-level thresholds: `default`
 (simple majority, Contributor promotion/removal) and `component-owner`
-(two-thirds majority, Component Owner promotion/removal). The five
+(two-thirds majority, Component Owner promotion/removal). Those render as
+`pass_threshold: 50.01` and `66.66` rather than the round numbers, because
+gitvote passes a vote on `in_favor_percentage >= pass_threshold`: at a flat
+50 an even-sized electorate splitting down the middle would pass its own
+tie, and a flat 66 sits just under a true two-thirds. The comment block
+above `render_gitvote_config()` has the full reasoning. The five
 org-control repos (`governance`, `.project`, `.github`, `cnpg-infra`,
 `cnpg-template`) get the same shape scoped to `steering-committee`
 instead, since their votes are Steering Committee business, not a

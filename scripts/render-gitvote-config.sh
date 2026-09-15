@@ -87,6 +87,30 @@ gitvote_voter_teams() { # $1 = repo, $2 = category -> one team slug per line
   fi
 }
 
+# Why the thresholds below are fractional (50.01 / 66.66) rather than the
+# round 50 / 66 they replaced.
+#
+# gitvote decides a vote with `in_favor_percentage >= pass_threshold`
+# (cncf/gitvote src/results.rs), where the denominator is the whole
+# electorate, not the votes cast. `>=` is the problem: at a flat 50, an
+# even-sized electorate splitting exactly down the middle clears the bar,
+# so a 2-2 tie on a four-owner repo passes the motion. A simple majority
+# is *strictly* more than half, and a percentage can't express "half plus
+# one vote", so the bar has to sit just above 50 instead.
+#
+# 50.01: the smallest possible majority of N voters is 50 + 100/N percent,
+# which stays above 50.01 for any N up to 10000. Rejects an exact tie,
+# accepts every real majority.
+#
+# 66.66: two-thirds is 66.666..., so a flat 66 was fractionally under its
+# own bar (33 of 50 is 66.0 and would have passed). Do NOT "round up" this
+# one to 66.67: for an electorate divisible by three the exact two-thirds
+# computes to 66.6666..., which falls *under* 66.67 and would break a
+# legitimate 2-of-3. 66.66 sits in the gap and is correct well past any
+# committee size this org will have.
+#
+# pass_threshold is an f64 in gitvote's config (src/cfg_repo.rs) with no
+# integer constraint, so fractional values parse fine.
 render_gitvote_config() { # $1 = repo, $2 = category (may be empty)
   local repo="$1" category="$2"
   mapfile -t teams < <(gitvote_voter_teams "$repo" "$category")
@@ -114,6 +138,11 @@ render_gitvote_config() { # $1 = repo, $2 = category (may be empty)
 # org-policy.yaml's steering_committee field); membership is today's 5
 # core maintainers, pending ratification of the federated governance
 # model (governance's dev/67 and dev/70).
+#
+# The thresholds are 50.01 and 66.66, not 50 and 66, because gitvote
+# passes a vote on >= rather than >: a flat 50 would let an even-sized
+# electorate tie and still pass. See cnpg-infra's
+# scripts/render-gitvote-config.sh for the full reasoning.
 automation:
   enabled: false
   rules:
@@ -123,7 +152,7 @@ automation:
 profiles:
   default:
     duration: 1w
-    pass_threshold: 50
+    pass_threshold: 50.01
     allowed_voters:
       teams:
 ${team_lines}
@@ -133,7 +162,7 @@ ${team_lines}
 
   steering:
     duration: 1w
-    pass_threshold: 66
+    pass_threshold: 66.66
     allowed_voters:
       teams:
 ${team_lines}
@@ -160,6 +189,11 @@ EOF
 # plus, where this repo belongs to a subproject, the same two scoped to
 # that subproject's maintainer committee, for the case where this repo has
 # too few named owners to decide for itself.
+#
+# The thresholds are 50.01 and 66.66, not 50 and 66, because gitvote
+# passes a vote on >= rather than >: a flat 50 would let an even-sized
+# electorate tie and still pass. See cnpg-infra's
+# scripts/render-gitvote-config.sh for the full reasoning.
 automation:
   enabled: false
   rules:
@@ -169,7 +203,7 @@ automation:
 profiles:
   default:
     duration: 1w
-    pass_threshold: 50
+    pass_threshold: 50.01
     allowed_voters:
       teams:
 ${team_lines}
@@ -179,7 +213,7 @@ ${team_lines}
 
   component-owner:
     duration: 1w
-    pass_threshold: 66
+    pass_threshold: 66.66
     allowed_voters:
       teams:
 ${team_lines}
@@ -199,7 +233,7 @@ EOF
 
   committee:
     duration: 1w
-    pass_threshold: 50
+    pass_threshold: 50.01
     allowed_voters:
       teams:
 ${committee_lines}
@@ -209,7 +243,7 @@ ${committee_lines}
 
   committee-component-owner:
     duration: 1w
-    pass_threshold: 66
+    pass_threshold: 66.66
     allowed_voters:
       teams:
 ${committee_lines}

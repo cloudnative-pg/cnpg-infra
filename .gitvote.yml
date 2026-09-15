@@ -10,6 +10,11 @@
 # org-policy.yaml's steering_committee field); membership is today's 5
 # core maintainers, pending ratification of the federated governance
 # model (governance's dev/67 and dev/70).
+#
+# The thresholds are 50.01 and 66.66, not 50 and 66, because gitvote
+# passes a vote on >= rather than >: a flat 50 would let an even-sized
+# electorate tie and still pass. See cnpg-infra's
+# scripts/render-gitvote-config.sh for the full reasoning.
 automation:
   enabled: false
   rules:
@@ -19,7 +24,7 @@ automation:
 profiles:
   default:
     duration: 1w
-    pass_threshold: 50
+    pass_threshold: 50.01
     allowed_voters:
       teams:
         - steering-committee
@@ -29,7 +34,7 @@ profiles:
 
   steering:
     duration: 1w
-    pass_threshold: 66
+    pass_threshold: 66.66
     allowed_voters:
       teams:
         - steering-committee
