@@ -316,3 +316,8 @@ repositories:
     subproject: extensibility
     reason: "External fork of kopia/kopia (deduplication engine klio depends on) — not org-authored runtime code. Listed under External Dependencies in governance/subprojects/extensibility.md, which notes it is kept in sync rather than technically owned. This fork's default branch is 'klio', not 'main'."
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia, gabriele-wolfox]
+  - name: ci-machinery
+    class: B
+    subproject: supply-chain
+    description: "CI/CD machinery and automation library for CloudNativePG projects"
+    owners: [gbartolini, mnencia, fcanovai, litaocdl, NiccoloFei, GabriFedi97]

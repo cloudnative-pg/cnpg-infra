@@ -288,3 +288,8 @@ repositories:
         teams: [kopia-owners]
         users: []
         note: "External fork (of kopia/kopia) newly brought under cnpg-infra management; no owner documented in governance/subprojects/*.md. Default branch is 'klio', not 'main'."
+  - name: ci-machinery
+    rules:
+      - path: "*"
+        teams: [ci-machinery-owners]
+        users: []
