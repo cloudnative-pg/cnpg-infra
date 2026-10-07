@@ -147,6 +147,10 @@ the access has to be a *direct collaborator* grant, which is why
 `scripts/sync-reviewer-grants.rb` exists separately from
 `sync-project-owner-teams.sh`.
 
+A Reviewer is never named on a rule's `*` line, which is the owners' fallback
+and not a path: someone with no path to name is not a Reviewer of that repo.
+`validate-policy.rb` rejects individual users on any `*` rule.
+
 There is no `reviewers:` list to maintain: `componentowners-policy.yaml`'s
 `users:` entries are the list, so the record cannot drift from the rendered
 `CODEOWNERS`. The renderer puts them in each repo's `COMPONENT_OWNERS.md`

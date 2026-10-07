@@ -21,7 +21,7 @@
 #      earlier in this project's life: "postgres-extensions-containers-
 #      ownersa" and "admin" (singular) instead of "admins".
 #   5. Every componentowners-policy.yaml entry has a "*" rule, and that
-#      rule comes first.
+#      rule comes first, and names no individual users (only teams).
 #   6. Every repo referenced in milestones-policy.yaml is one this
 #      workspace actually manages (generated/managed-repos.yaml).
 #
@@ -190,6 +190,17 @@ if errors.empty?
       errors << "componentowners-policy.yaml: #{entry['name']}: the '*' rule must come first, but #{paths.first.inspect} does -- a '*' rendered after path-scoped rules overrides all of them"
     elsif paths.count("*") > 1
       errors << "componentowners-policy.yaml: #{entry['name']}: has #{paths.count('*')} '*' rules -- render-codeowners.rb emits one line per rule in file order, so a later '*' silently overrides every path-scoped rule above it"
+    end
+  end
+
+  # A `*` rule carries ownership, so it names teams only. An individual on it
+  # would be a repo-wide Reviewer, but a Reviewer is trusted with named
+  # paths, and the owners already co-own every path.
+  data[:componentowners].fetch("repositories", []).each do |entry|
+    Array(entry["rules"]).each do |rule|
+      next unless rule["path"] == "*" && !Array(rule["users"]).empty?
+
+      errors << "componentowners-policy.yaml: #{entry['name']}: the '*' rule names individual users (#{Array(rule['users']).join(', ')}) -- an individual is a Reviewer of named paths, so give them a path-scoped rule instead"
     end
   end
 

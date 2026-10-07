@@ -25,6 +25,12 @@
 # individually; `users` on a rule is for a genuine path-scoped exception
 # (see the path-scoped rules further down), not a repo-wide default.
 #
+# An individual never goes on the `*` rule. A team there means ownership,
+# an individual means review of named paths (the Reviewer rung, see
+# governance's CONTRIBUTOR_LADDER.md), and the `*` line is the owners'
+# fallback, not a path. Someone who should review a repo but has no path to
+# name is not a Reviewer there. validate-policy.rb rejects it.
+#
 # Sourced from governance/subprojects/*.md's Scope + Owners columns
 # (whole-repository AND path-scoped rows both included here, unlike the
 # old codeowners-policy.yaml which only tracked the whole-repo row).
@@ -214,8 +220,8 @@ repositories:
     rules:
       - path: "*"
         teams: [klio-owners]
-        users: [jbattiato, jlong49]
-        note: "Newly added repo, not yet reflected in any governance/subprojects/*.md listing — no owner documented anywhere yet. Worth a routine editorial addition to the relevant subprojects file (see subprojects/README.md — no vote needed for that). jlong49 (John Long) is deliberately an individual CODEOWNERS reviewer here, not a klio-owners team member — per Gabriele, he should be able to review but isn't (yet) an owner. He holds a direct 'write' collaborator grant on the repo (not tracked by repo-tiers.yaml's owners:/sync-project-owner-teams.sh, since that only manages the owners team) so GitHub actually honors him as a code owner — CODEOWNERS silently drops anyone without write+ access."
+        users: []
+        note: "Newly added repo, not yet reflected in any governance/subprojects/*.md listing — no owner documented anywhere yet. Worth a routine editorial addition to the relevant subprojects file (see subprojects/README.md — no vote needed for that)."
   - name: machinery
     rules:
       - path: "*"
@@ -292,4 +298,4 @@ repositories:
     rules:
       - path: "*"
         teams: [ci-machinery-owners]
-        users: [gabriele-wolfox, jlong49]
+        users: []
