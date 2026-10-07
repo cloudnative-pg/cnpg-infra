@@ -99,7 +99,7 @@ repositories:
     rules:
       - path: "*"
         teams: [charts-owners]
-        users: [danishk]
+        users: []
       - path: "/charts/cloudnative-pg/"
         teams: [charts-owners]
         users: [danishk]
