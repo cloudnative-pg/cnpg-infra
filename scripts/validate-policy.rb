@@ -22,6 +22,9 @@
 #      ownersa" and "admin" (singular) instead of "admins".
 #   5. Every componentowners-policy.yaml entry has a "*" rule, and that
 #      rule comes first, and names no individual users (only teams).
+#      Every individual named on any path must be listed in that repo's
+#      `reviewers:` in repo-tiers.yaml, and nobody holds more than one of
+#      owners, contributors and reviewers in the same repo.
 #   6. Every repo referenced in milestones-policy.yaml is one this
 #      workspace actually manages (generated/managed-repos.yaml).
 #
@@ -100,6 +103,14 @@ if errors.empty?
     both = Array(entry["owners"]) & Array(entry["contributors"])
     unless both.empty?
       errors << "repo-tiers.yaml: #{name}: #{both.join(', ')} listed as both owner and contributor -- a promotion moves someone between the two, it doesn't add a second rung"
+    end
+
+    # Same for a Reviewer: they hold one rung of the ladder per repository.
+    %w[owners contributors].each do |other|
+      dup = Array(entry["reviewers"]) & Array(entry[other])
+      next if dup.empty?
+
+      errors << "repo-tiers.yaml: #{name}: #{dup.join(', ')} listed as both reviewer and #{other.chomp('s')} -- a promotion moves someone between rungs, it doesn't add a second one"
     end
   end
 
@@ -200,7 +211,20 @@ if errors.empty?
     Array(entry["rules"]).each do |rule|
       next unless rule["path"] == "*" && !Array(rule["users"]).empty?
 
-      errors << "componentowners-policy.yaml: #{entry['name']}: the '*' rule names individual users (#{Array(rule['users']).join(', ')}) -- an individual is a Reviewer of named paths, so give them a path-scoped rule instead"
+      errors << "componentowners-policy.yaml: #{entry['name']}: the '*' rule names individual users (#{Array(rule['users']).join(', ')}) -- the '*' line is the owners' fallback; list a Reviewer under `reviewers:` in repo-tiers.yaml, and name them on a path-scoped rule only if they should be requested there"
+    end
+  end
+
+  # Anyone a CODEOWNERS path names must hold the Reviewer rung, which is
+  # what grants them Write (GitHub ignores a code owner without it).
+  reviewers_by_repo = data[:tiers].fetch("repositories", []).to_h { |r| [r["name"], Array(r["reviewers"]) + Array(r["owners"])] }
+  data[:componentowners].fetch("repositories", []).each do |entry|
+    Array(entry["rules"]).each do |rule|
+      Array(rule["users"]).each do |u|
+        next if reviewers_by_repo.fetch(entry["name"], []).include?(u)
+
+        errors << "componentowners-policy.yaml: #{entry['name']}, #{rule['path']}: names #{u}, who is not in that repo's reviewers: (or owners:) in repo-tiers.yaml -- add them there, which is what grants Write"
+      end
     end
   end
 

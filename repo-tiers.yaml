@@ -90,9 +90,20 @@
 # Component Owners; the entry records that vote, it doesn't make the
 # decision. Most repos have no entry at all, and get no CONTRIBUTORS.md.
 #
-# Nobody should be in both fields for the same repo: promotion to Component
-# Owner means moving up, not holding both rungs. validate-policy.rb checks
-# this.
+# reviewers lists the individuals holding the Reviewer rung for this repo.
+# It is the list of record: it is what COMPONENT_OWNERS.md renders and what
+# scripts/sync-reviewer-grants.rb grants `Write` against. A Reviewer does
+# not need an entry in CODEOWNERS. Naming them on one or more paths there
+# (componentowners-policy.yaml `users:`) is optional routing, so GitHub
+# requests their review automatically on those paths; a Reviewer with no
+# path is simply trusted to review the repository on request. Anyone named
+# on a CODEOWNERS path must be listed here too (validate-policy.rb checks).
+# Direct collaborator grants, not a team, since the rung implies no org
+# membership.
+#
+# Nobody should be in more than one of owners, contributors and reviewers
+# for the same repo: promotion means moving up, not holding two rungs.
+# validate-policy.rb checks this.
 #
 # Fields:
 #   name:        repo name, must match an entry in managed-repos.yaml
@@ -104,6 +115,7 @@
 #   description: desired GitHub repo description; omit to leave untouched
 #   owners:      desired membership of "<repo>-owners"; omit if none
 #   contributors: Contributor-tier people for this repo; omit if none
+#   reviewers:   Reviewer-tier people for this repo; omit if none
 
 repositories:
   # --- org-control: outside this scheme entirely ---------------------------
@@ -141,12 +153,14 @@ repositories:
     reason: "The operator itself — the most important repo in the org."
     description: "The most popular Kubernetes Operator for PostgreSQL."
     owners: [armru, fcanovai, gbartolini, leonardoce, mnencia]
+    reviewers: [NiccoloFei, litaocdl]
   - name: charts
     class: A
     subproject: supply-chain
     reason: "How the operator and clusters actually get deployed — the literal command every user runs to install/upgrade, as directly customer-facing as the operator itself."
     description: "Official Helm charts for the operator, database clusters and the Barman Cloud plugin."
     owners: [fcanovai, gbartolini, leonardoce, mnencia, itay-grudev, phisco]
+    reviewers: [danishk]
   - name: postgres-containers
     class: A
     subproject: supply-chain
@@ -159,6 +173,7 @@ repositories:
     reason: "Extension images loaded directly into production databases."
     description: "Container images for community PostgreSQL extensions to be used as pluggable image volumes with CloudNativePG"
     owners: [mnencia, gbartolini, NiccoloFei, GabriFedi97, ardentperf]
+    reviewers: [shusaan, solidDoWant]
   - name: pgbouncer-containers
     class: A
     subproject: supply-chain
@@ -209,6 +224,7 @@ repositories:
     reason: "A backup and recovery solution compliant with CNPG-I — same data-safety stakes as plugin-barman-cloud, same reasoning for class B over A."
     description: "Multi-Tiered Backup and Recovery Plugin for CloudNativePG"
     owners: [fcanovai, leonardoce, gabriele-wolfox, GabriFedi97, armru]
+    reviewers: [jbattiato, jlong49]
   - name: postgis-containers
     class: B
     subproject: supply-chain
@@ -321,3 +337,4 @@ repositories:
     subproject: supply-chain
     description: "CI/CD machinery and automation library for CloudNativePG projects"
     owners: [gbartolini, mnencia, fcanovai, litaocdl, NiccoloFei, GabriFedi97, jbattiato]
+    reviewers: [gabriele-wolfox, jlong49]

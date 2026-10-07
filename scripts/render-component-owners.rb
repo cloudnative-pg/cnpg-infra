@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 #
 # Renders the desired COMPONENT_OWNERS.md content for one repo from
-# repo-tiers.yaml's `owners:` field, with names and countries filled in
+# repo-tiers.yaml's `owners:` and `reviewers:` fields, with names and countries filled in
 # from people.yaml.
 #
 # That field is the single source of truth for who holds Write on a repo
@@ -101,40 +101,38 @@ lines << "| Name | GitHub Handle | Country |"
 lines << "| :--- | :--- | :--- |"
 People.sorted(owners).each { |o| lines << People.row(o) }
 lines << ""
-# Reviewers are the individuals a path rule names, which is the whole
-# definition: a team in CODEOWNERS means ownership, an individual means
-# review. Anyone who is also an owner is already in the table above, so
-# naming them on a path is extra routing rather than a second status.
+# Reviewers come from repo-tiers.yaml's `reviewers:` list, which is the list
+# of record. CODEOWNERS paths are optional: a path rule naming a Reviewer
+# adds automatic review requests on that path, and a Reviewer with no path
+# is trusted with the repository on request. Anyone who is also an owner is
+# already in the table above, so they are not listed twice.
 co_policy = YAML.load_file(COMPONENTOWNERS_FILE).fetch("repositories", [])
 co_entry = co_policy.find { |r| r["name"] == repo }
-reviewers = Hash.new { |h, k| h[k] = [] }
+reviewer_paths = Hash.new { |h, k| h[k] = [] }
 Array(co_entry && co_entry["rules"]).each do |rule|
-  Array(rule["users"]).each do |u|
-    next if owners.include?(u)
-
-    rule["path"].to_s.split(" ").each { |path| reviewers[u] << path }
-  end
+  Array(rule["users"]).each { |u| reviewer_paths[u] << rule["path"].to_s }
 end
+reviewers = Array(entry["reviewers"]) - owners
 
 unless reviewers.empty?
   lines << ""
   lines << "## Reviewers"
   lines << ""
-  lines << "Trusted with review of the paths below, and requested automatically on any"
-  lines << "pull request touching them. Advisory rather than blocking: the Component"
-  lines << "Owners above co-own every path, so a review here is never the only one"
-  lines << "available."
+  lines << "Trusted with review of this repository, and holding `Write` on it. Where a"
+  lines << "path is named below, they are also requested automatically on pull requests"
+  lines << "touching it. Advisory rather than blocking: the Component Owners above"
+  lines << "co-own every path, so a review here is never the only one available."
   lines << ""
   lines << "| Reviewer | Paths |"
   lines << "| :--- | :--- |"
-  People.sorted(reviewers.keys).each do |u|
+  People.sorted(reviewers).each do |u|
     name = People.all.dig(u, "name")
     who = name ? "#{name} ([@#{u}](https://github.com/#{u}))" : "[@#{u}](https://github.com/#{u})"
-    lines << "| #{who} | #{reviewers[u].map { |p| "`#{p}`" }.join(', ')} |"
+    paths = reviewer_paths[u]
+    lines << "| #{who} | #{paths.empty? ? 'Whole repository, on request' : paths.map { |p| "`#{p}`" }.join(', ')} |"
   end
 end
 
-lines << ""
 lines << "Component Owner is a rung of the CloudNativePG contributor ladder. A new"
 lines << "owner is added by a ⅔ vote of this repository's existing Component Owners,"
 lines << "held on an issue in this repository; the change is then recorded in"

@@ -134,27 +134,27 @@ is scoped to this repo alone.
 
 ## Reviewers: the one rung that cannot use a team
 
-`governance/CONTRIBUTOR_LADDER.md` defines a **Reviewer** as someone named
-*individually* in a repo's `CODEOWNERS`, trusted with review of those paths.
-The rule to hold onto: **a team in `CODEOWNERS` means ownership, an
-individual means review.**
+`governance/CONTRIBUTOR_LADDER.md` defines a **Reviewer** as someone trusted
+with review of part of a repository. A Reviewer is listed under `reviewers:`
+in `repo-tiers.yaml`, which is the list of record: it drives their `Write`
+grant and the Reviewers section of the repo's `COMPONENT_OWNERS.md`. An entry
+in `CODEOWNERS` is **optional**: a Reviewer can be named on one or more paths
+in `componentowners-policy.yaml` so GitHub requests their review there, or on
+none, in which case they review on request. A team in `CODEOWNERS` still means
+ownership. Never name an individual on a `*` rule (the owners' fallback);
+`validate-policy.rb` rejects it, and rejects anyone named on a path who is
+not in `reviewers:`.
 
 Two mechanics drive the tooling. GitHub silently ignores a `CODEOWNERS`
-entry for anyone without `Write`, so every individual a path rule names
-must hold it or the line does nothing. And the rung deliberately implies no
-organisation membership, while GitHub teams can only contain members — so
-the access has to be a *direct collaborator* grant, which is why
+entry for anyone without `Write`, so every Reviewer holds it. And the rung
+deliberately implies no organisation membership, while GitHub teams can only
+contain members, so the access is a *direct collaborator* grant, which is why
 `scripts/sync-reviewer-grants.rb` exists separately from
-`sync-project-owner-teams.sh`.
+`sync-project-owner-teams.sh`. It never revokes.
 
-A Reviewer is never named on a rule's `*` line, which is the owners' fallback
-and not a path: someone with no path to name is not a Reviewer of that repo.
-`validate-policy.rb` rejects individual users on any `*` rule.
-
-There is no `reviewers:` list to maintain: `componentowners-policy.yaml`'s
-`users:` entries are the list, so the record cannot drift from the rendered
-`CODEOWNERS`. The renderer puts them in each repo's `COMPONENT_OWNERS.md`
-under Reviewers, with the paths they cover.
+Governance's `CONTRIBUTOR_LADDER.md` still describes the Reviewer as "named
+individually in CODEOWNERS". That text is out of step with this and needs an
+amendment, which is a two-thirds Steering vote.
 
 ## Branch protection: rulesets only, not classic protection
 

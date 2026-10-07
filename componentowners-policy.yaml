@@ -25,11 +25,12 @@
 # individually; `users` on a rule is for a genuine path-scoped exception
 # (see the path-scoped rules further down), not a repo-wide default.
 #
-# An individual never goes on the `*` rule. A team there means ownership,
-# an individual means review of named paths (the Reviewer rung, see
-# governance's CONTRIBUTOR_LADDER.md), and the `*` line is the owners'
-# fallback, not a path. Someone who should review a repo but has no path to
-# name is not a Reviewer there. validate-policy.rb rejects it.
+# An individual never goes on the `*` rule: a team there means ownership,
+# and the `*` line is the owners' fallback, not a path. A Reviewer is
+# listed under `reviewers:` in repo-tiers.yaml, which is what grants Write
+# and what COMPONENT_OWNERS.md renders. Naming a Reviewer on a path here is
+# optional: it makes GitHub request their review on that path. Anyone named
+# on a path must also be in `reviewers:`. validate-policy.rb checks both.
 #
 # Sourced from governance/subprojects/*.md's Scope + Owners columns
 # (whole-repository AND path-scoped rows both included here, unlike the
