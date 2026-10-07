@@ -74,6 +74,12 @@ people:
   XploY04:
     name: "Yash Agarwal"
     country: India
+  danishedb:
+    name: "Danish Khan"
+    organization: EDB
+  jlong49:
+    name: "John Long"
+    organization: EDB
   itay-grudev:
     name: "Itay Grudev"
     organization: Verito Digital
@@ -91,13 +97,11 @@ people:
   phisco:
     name: "Philippe Scorsolini"
     organization: Upbound
+    country: Italy
   ardentperf:
     name: "Jeremy Schneider"
     organization: GEICO
-  # Names and employers here come from their own commit identities in
-  # cloudnative-pg ("Gabriele Fedi <gabriele.fedi@enterprisedb.com>",
-  # "TamaraNocentini <tamara.nocentini@enterprisedb.com>"); country
-  # confirmed by Gabriele Bartolini.
+    country: USA
   GabriFedi97:
     name: "Gabriele Fedi"
     organization: EDB

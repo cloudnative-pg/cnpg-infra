@@ -158,13 +158,13 @@ repositories:
     subproject: supply-chain
     reason: "Extension images loaded directly into production databases."
     description: "Container images for community PostgreSQL extensions to be used as pluggable image volumes with CloudNativePG"
-    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, NiccoloFei, GabriFedi97]
+    owners: [mnencia, gbartolini, NiccoloFei, GabriFedi97, ardentperf]
   - name: pgbouncer-containers
     class: A
     subproject: supply-chain
     reason: "Connection pooling image used in production."
     description: "Optimized images for PgBouncer connection pooling."
-    owners: [gbartolini, mnencia, fcanovai, leonardoce, NiccoloFei, litaocdl]
+    owners: [gbartolini, mnencia, NiccoloFei, litaocdl]
   - name: artifacts
     class: A
     subproject: supply-chain
@@ -208,13 +208,13 @@ repositories:
     subproject: extensibility
     reason: "A backup and recovery solution compliant with CNPG-I — same data-safety stakes as plugin-barman-cloud, same reasoning for class B over A."
     description: "Multi-Tiered Backup and Recovery Plugin for CloudNativePG"
-    owners: [fcanovai, leonardoce, gabriele-wolfox, GabriFedi97]
+    owners: [fcanovai, leonardoce, gabriele-wolfox, GabriFedi97, armru]
   - name: postgis-containers
     class: B
     subproject: supply-chain
     reason: "Per Gabriele — the way forward is PostGIS as a pluggable extension via postgres-extensions-containers, not this standalone bundled image, so it's moved off the critical customer-facing path."
     description: "PostgreSQL images bundled with PostGIS extensions."
-    owners: [gbartolini, mnencia, leonardoce, fcanovai, NiccoloFei, litaocdl]
+    owners: [gbartolini, mnencia, NiccoloFei, litaocdl]
   - name: daggerverse
     class: B
     subproject: supply-chain
@@ -232,7 +232,7 @@ repositories:
     subproject: community-ecosystem
     reason: "The public project website."
     description: "CloudNativePG website"
-    owners: [gbartolini, FloorD, mnencia, leonardoce, fcanovai]
+    owners: [gbartolini, FloorD, mnencia, leonardoce]
   - name: grafana-dashboards
     class: B
     subproject: community-ecosystem
@@ -270,7 +270,7 @@ repositories:
     subproject: community-ecosystem
     reason: "For learning purposes only, explicitly must not be used in production (see its own CLAUDE.md)."
     description: "Local learning environment for CloudNativePG using Docker and Kind."
-    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, ardentperf]
+    owners: [leonardoce, mnencia, gbartolini, fcanovai, armru, ardentperf, NiccoloFei, GabriFedi97, jbattiato, gabriele-wolfox, litaocdl]
   - name: webtest
     class: C
     subproject: community-ecosystem
@@ -320,4 +320,4 @@ repositories:
     class: B
     subproject: supply-chain
     description: "CI/CD machinery and automation library for CloudNativePG projects"
-    owners: [gbartolini, mnencia, fcanovai, litaocdl, NiccoloFei, GabriFedi97]
+    owners: [gbartolini, mnencia, fcanovai, litaocdl, NiccoloFei, GabriFedi97, jbattiato]
