@@ -99,16 +99,16 @@ repositories:
     rules:
       - path: "*"
         teams: [charts-owners]
-        users: [danishedb]
+        users: [danishk]
       - path: "/charts/cloudnative-pg/"
         teams: [charts-owners]
-        users: [danishedb]
+        users: [danishk]
       - path: "/charts/cluster/"
         teams: [charts-owners]
-        users: [danishedb]
+        users: [danishk]
       - path: "/charts/plugin-barman-cloud/"
         teams: [charts-owners]
-        users: [danishedb]
+        users: [danishk]
   - name: ciclops
     rules:
       - path: "*"
