@@ -80,6 +80,7 @@ half-completed run before that happens.
 | `scripts/fix-repo-settings.sh <repo> [--apply]` | Remediates one repo against the policy files. **Defaults to dry-run** — always review the diff before re-running with `--apply`. Only ever raises settings, never lowers an existing stricter one |
 | `scripts/fix-all-repos.sh [--apply]` | Runs `fix-repo-settings.sh` across every repo in `managed-repos.yaml`, one at a time, with a summary at the end. Same dry-run-by-default safety model — nothing here is new logic, just a loop |
 | `scripts/render-component-owners.rb <repo>` | Renders that repo's `COMPONENT_OWNERS.md` from `repo-tiers.yaml`'s `owners:` to stdout. Pure renderer, like `render-codeowners.rb`: touches nothing. The public, per-repo answer to "who owns this component" that a GitHub team can't be, since team membership is only visible to other org members |
+| `scripts/sync-repo.sh <repo> [--apply]` | Runs every per-repo reconcile step below in order (validate, owners team, Reviewer grants, settings, labels, milestones, ownership files). The single command to run after a policy change. Same dry-run-by-default model, no logic of its own |
 | `scripts/sync-ownership-files.sh <repo> [--apply]` | Writes everything cnpg-infra generates for a repo into its local sibling clone: `CODEOWNERS`, `COMPONENT_OWNERS.md`, `CONTRIBUTORS.md` where it has contributors, `.gitvote.yml`, and a copy of each org-wide issue template from `cloudnative-pg/.github` **if** the repo has an `ISSUE_TEMPLATE` folder of its own (GitHub stops serving org defaults to those repos, silently). One command stages a repository completely, so landing it is one PR and one diff to review rather than three passes. **Defaults to dry-run**, showing a unified diff per file. Local only: never commits, pushes, or calls GitHub, so the target repo's own PR review still gates the change |
 | `scripts/sync-reviewer-grants.rb [repo] [--apply]` | Reconciles the `Write` access that Reviewers need, against `repo-tiers.yaml`'s `reviewers:` lists (naming them on `componentowners-policy.yaml` paths is optional routing). Direct grants rather than a team, since the Reviewer rung implies no org membership and teams can only hold members. Reports, but never revokes, a direct write grant no rule explains. **Defaults to dry-run** |
 | `scripts/sync-labels.rb [repo] [--apply]` | Reconciles GitHub issue labels against `labels-policy.yaml`: creates a missing label, updates a drifted colour or description. Never deletes, and never touches a label the policy doesn't name. **Defaults to dry-run** |
@@ -87,6 +88,45 @@ half-completed run before that happens.
 | `scripts/sync-milestones.rb [repo] [--apply]` | Reconciles GitHub milestones against `milestones-policy.yaml`: creates a missing milestone (matched by exact title), updates its description and/or due date if either has drifted. Due date is a rolling window computed from `due_offset_months` and the date the script runs, not a fixed date — it advances on its own each time this next runs in a new calendar month. Never touches open/closed state or issue assignments. **Defaults to dry-run** — always review the plan before re-running with `--apply` |
 | `scripts/check-gitvote-config.sh [repo]` | Read-only audit of each repo's `.gitvote.yml` against `gitvote-policy.yaml`'s baseline, plus a one-time check of the [gitvote](https://github.com/cncf/gitvote) GitHub App's org-wide installation scope. Writes `gitvote-config-report.md` |
 | `scripts/fix-gitvote-config.sh <repo> [--apply]` | Lands the `.gitvote.yml` that repo's category calls for. Not a settings PATCH like `fix-repo-settings.sh` -- `.gitvote.yml` lives in the repo's own git history, so this opens a PR (branch, commit, `gh pr create`), except for `cnpg-infra` itself, which gets a direct commit to its default branch per its own documented bypass exception. **Defaults to dry-run** -- always review the diff (and, for a non-`cnpg-infra` repo, that a PR is about to be opened) before re-running with `--apply` |
+
+## After you change a policy file: what to run
+
+Merging a change here only updates the desired state. GitHub and the target
+repos change when you run a script. For any change to one repo, run:
+
+```sh
+./scripts/sync-repo.sh <repo>            # dry run of every step
+./scripts/sync-repo.sh <repo> --apply
+```
+
+It validates the policy files, then runs the steps below in order: owners
+team, Reviewer grants, repo settings, labels, milestones (only for repos
+`milestones-policy.yaml` names) and the generated ownership files. Each step
+is idempotent and only raises, so running all of them is safe when only one
+was needed. Afterwards, commit the regenerated files in `<repo>` and open a
+PR there (the script stops at the working tree).
+
+The table says which step a given edit actually exercises, for running one
+script on its own. Every script is dry-run by default.
+
+| You changed | Run, in this order | Then |
+|---|---|---|
+| `repo-tiers.yaml` `owners:` (add or remove a Component Owner) | `sync-project-owner-teams.sh <repo>`, then `sync-ownership-files.sh <repo>` | Commit and open a PR in `<repo>` for the regenerated `COMPONENT_OWNERS.md`. `CODEOWNERS` only changes if its policy changed too, since it references the `<repo>-owners` team. A person who is not yet an org member gets a pending invite, not access, until they accept |
+| `repo-tiers.yaml` `contributors:` | `sync-ownership-files.sh <repo>` | PR in `<repo>` for `CONTRIBUTORS.md`. No GitHub access is granted by this list |
+| `componentowners-policy.yaml` (path rules, Reviewers) | `sync-reviewer-grants.rb <repo>`, then `sync-ownership-files.sh <repo>` | PR in `<repo>` for `CODEOWNERS` and `COMPONENT_OWNERS.md` |
+| `people.yaml` (name, organization, country) | `sync-ownership-files.sh <repo>` for each repo that lists the person | Display data only, grants nothing. The rendered files in the repo change, nothing on GitHub does |
+| `repo-tiers.yaml` `class:` or `description:` | `fix-repo-settings.sh <repo>` | Class sets the review floor, description is pushed to GitHub |
+| `repo-policy.yaml` or `org-policy.yaml` | `fix-repo-settings.sh <repo>` for one repo, `fix-all-repos.sh` for an org-wide rule | |
+| `gitvote-policy.yaml` | `sync-ownership-files.sh <repo>` (writes `.gitvote.yml`) or `fix-gitvote-config.sh <repo>` | Then `check-gitvote-config.sh` to confirm |
+| `labels-policy.yaml` | `sync-labels.rb [repo]` | |
+| `milestones-policy.yaml` | `sync-milestones.rb [repo]` | |
+| A repo was cloned, archived or created | `update-managed-repos.sh` | See "Adding a new repo" |
+| A team's membership changed outside this repo | `update-teams.sh` | Refreshes the snapshot `validate-policy.rb` checks team slugs against |
+
+When a script lands files in a sibling clone, `git fetch origin` and branch
+from `origin/main` before committing, and cite the passed vote issue in the
+PR body for any ownership change. `check-repo-settings.sh [repo]` is the
+read-only way to confirm the end state afterwards.
 
 ## Adding a new repo
 

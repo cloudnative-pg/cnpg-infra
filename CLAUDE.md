@@ -94,6 +94,13 @@ in the same pass as adding them to a team unless `is_active_org_member()`
 confirms they're already active — otherwise they lose real access for
 however long the invite sits unaccepted.
 
+## What to run after a policy change
+
+README's "After you change a policy file: what to run" is the table of
+record, and `scripts/sync-repo.sh <repo> [--apply]` is the single command
+that runs every per-repo step. When the user reports a change to a policy
+file here, answer from them (dry-run first, `--apply` only on go-ahead); keep it updated whenever a script is added or changes scope.
+
 ## Landing generated ownership files in a target repo
 
 Several files in every managed repo come from policy here: `CODEOWNERS`
