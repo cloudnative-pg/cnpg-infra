@@ -321,7 +321,7 @@ repositories:
     class: C
     subproject: community-ecosystem
     description: "Headlamp plugin for CloudNativePG"
-    owners: [TamaraNocentini, leonardoce]
+    owners: [TamaraNocentini, leonardoce, gambtho]
   - name: community-operators
     class: C
     subproject: supply-chain

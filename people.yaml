@@ -111,3 +111,7 @@ people:
     name: "Tamara Nocentini"
     organization: EDB
     country: Italy
+  gambtho:
+    name: "Thomas Gamble"
+    organization: Microsoft Corporation
+    country: USA
