@@ -43,6 +43,13 @@
 #     (read from whichever of classic protection / an existing ruleset has
 #     them) — this script adds a floor, it doesn't redesign a repo's
 #     existing review policy.
+#   - DCO: the `DCO` status check (the Probot DCO app's check name) is added
+#     to the ruleset's required status checks if not already there, so a PR
+#     with an unsigned commit can't merge. repo-policy.yaml's `dco_check`
+#     overrides the check name for a repo that posts a differently named
+#     one, or opts out with `dco_check: none`. Adding it does NOT turn on
+#     "require branches up to date" for a repo that had no required checks
+#     before; that stays exactly what it was.
 #   - Linear history: required (`required_linear_history` rule). This is a
 #     plain boolean floor, forced unconditionally, including for
 #     "automated" repos.
@@ -150,6 +157,15 @@ policy_required_reviews() { # $1 = repo name -> prints integer floor, or 1 if un
     /^  - name: / { name=$3; found_name=(name==want) }
     found_name && /^    required_reviews:/ { print $2; matched=1; exit }
     END { if (!matched) print 1 }
+  ' "$POLICY"
+}
+
+policy_dco_check() { # $1 = repo name -> prints the required DCO check name, "DCO" if unset, "none" if opted out
+  [ -f "$POLICY" ] || { echo "DCO"; return; }
+  awk -v want="$1" '
+    /^  - name: / { name=$3; found_name=(name==want) }
+    found_name && /^    dco_check:/ { sub(/^    dco_check: */, ""); gsub(/"/, ""); print; matched=1; exit }
+    END { if (!matched) print "DCO" }
   ' "$POLICY"
 }
 
@@ -387,6 +403,22 @@ old_linear_history="$([ "$classic_linear_history" = "true" ] || [ "$rules_linear
 old_status_checks="$(jq -cn --argjson a "$classic_status_checks" --argjson b "$rules_status_checks" '($a + $b) | unique')"
 old_strict_checks="$([ "$classic_strict_checks" = "true" ] || [ "$rules_strict_checks" = "true" ] && echo true || echo false)"
 
+# DCO floor: add the DCO check to whatever checks already exist. Strict
+# ("branch must be up to date") keeps its existing behaviour (forced on
+# whenever the repo already had required checks) but is NOT newly forced
+# on just because DCO was added to a repo that had none.
+dco_check="$(policy_dco_check "$repo")"
+if [ "$dco_check" = "none" ]; then
+  new_status_checks="$old_status_checks"
+else
+  new_status_checks="$(jq -cn --argjson a "$old_status_checks" --arg d "$dco_check" '($a + [$d]) | unique')"
+fi
+if [ "$(echo "$old_status_checks" | jq 'length')" -gt 0 ]; then
+  new_strict_checks=true
+else
+  new_strict_checks="$old_strict_checks"
+fi
+
 old_squash="$(echo "$repo_json" | jq -r '.allow_squash_merge | if . == null then false else . end')"
 old_rebase="$(echo "$repo_json" | jq -r '.allow_rebase_merge | if . == null then false else . end')"
 old_merge_commit="$(echo "$repo_json" | jq -r '.allow_merge_commit | if . == null then true else . end')"
@@ -530,7 +562,8 @@ new_ruleset_body="$(jq -n \
   --argjson code_owner "$new_code_owner" \
   --argjson dismiss_stale "$old_dismiss_stale" \
   --argjson last_push "$old_last_push" \
-  --argjson status_checks "$old_status_checks" \
+  --argjson status_checks "$new_status_checks" \
+  --argjson strict_checks "$new_strict_checks" \
   --argjson bypass_actors "$new_bypass_actors_json" \
   '{
     name: $name,
@@ -560,7 +593,7 @@ new_ruleset_body="$(jq -n \
       + (if ($status_checks | length) > 0 then
           [{type: "required_status_checks", parameters: {
             do_not_enforce_on_create: false,
-            strict_required_status_checks_policy: true,
+            strict_required_status_checks_policy: $strict_checks,
             # integration_id deliberately omitted, not set to null: the
             # ruleset API schema rejects "integration_id": null outright
             # (422, data matches no possible input) even though it accepts
@@ -604,6 +637,9 @@ diff_line "force pushes allowed on $default_branch" "$([ "$old_force_push_blocke
 diff_line "deletion allowed on $default_branch"     "$([ "$old_deletion_blocked" = "true" ] && echo false || echo true)"   "false"
 diff_line "linear history required"           "$old_linear_history" "true"
 [ "$(echo "$old_status_checks" | jq 'length')" -gt 0 ] && diff_line "require branches up to date before merging" "$old_strict_checks" "true"
+if [ "$dco_check" != "none" ]; then
+  diff_line "required status check '$dco_check'" "$(echo "$old_status_checks" | jq -r --arg d "$dco_check" 'if index($d) then "required" else "not required" end')" "required"
+fi
 diff_line "secret scanning"                   "$secret_scanning"  "enabled"
 diff_line "secret scanning push protection"   "$push_protection"  "enabled"
 diff_line "dependabot security updates"       "$dependabot_sec"   "enabled"
