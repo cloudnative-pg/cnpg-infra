@@ -132,6 +132,8 @@
 #   ruleset_bypass_teams: see above
 #   extra_team_permissions: see above
 #   immutable_releases:   see above (only meaningful value is `false`)
+#   dco_check:            name of the required DCO status check (default
+#                         "DCO", the Probot DCO app); `none` opts the repo out
 #   pages_*:              see above
 
 repositories:
@@ -201,3 +203,9 @@ repositories:
   - name: governance
     reason: "Its CODEOWNERS scopes each subprojects/*.md file to that subproject's maintainer committee team, but none of those four teams held any permission on this repo, so GitHub treated all four lines as unknown owners and never requested them for review. Granting write makes the entries real; the governance-owners fallback on the same lines stays until each committee has a ratified roster."
     extra_team_permissions: [core-maintainers:write, supply-chain-maintainers:write, community-ecosystem-maintainers:write, extensibility-maintainers:write]
+  - name: community-operators
+    reason: "Fork of the upstream OperatorHub bundle repo with its own DCO workflow, which posts \"DCO test (commits signoff)\" rather than the Probot app's \"DCO\"; forks are kept out of the DCO requirement."
+    dco_check: none
+  - name: kopia
+    reason: "Fork of kopia/kopia; forks are kept out of the DCO requirement."
+    dco_check: none
