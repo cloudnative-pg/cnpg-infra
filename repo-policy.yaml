@@ -166,10 +166,10 @@ repositories:
     pages_path: /
     immutable_releases: false
   - name: cloudnative-pg.github.io
-    reason: "The cloudnative-pg.io landing site — served via legacy (branch-based) Pages from gh-pages, built by hugo_build.yml using peaceiris/actions-gh-pages, unlike docs/ and plugin-barman-cloud which use the newer Actions-workflow Pages build type."
+    reason: "The cloudnative-pg.io landing site, deployed from the production branch by hugo_build.yml. It holds the custom domain that docs/ is served under, so a wrong Pages setting here breaks both sites."
     pages_enabled: true
-    pages_build_type: legacy
-    pages_branch: gh-pages
+    pages_build_type: workflow
+    pages_branch: production
     pages_path: /
     pages_cname: cloudnative-pg.io
   - name: postgres-containers
