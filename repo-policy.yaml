@@ -209,3 +209,6 @@ repositories:
   - name: kopia
     reason: "Fork of kopia/kopia; forks are kept out of the DCO requirement."
     dco_check: none
+  - name: cnpg-headlamp-plugin
+    reason: "Release automation appends artifacts as part of its normal process; release immutability would break that."
+    immutable_releases: false
