@@ -153,3 +153,24 @@ steering_committee:
   - gbartolini
   - leonardoce
   - mnencia
+
+# admins
+#   The desired membership of the `admins` GitHub team, which is
+#   governance's Infrastructure Team: Admin on every repository
+#   (global_admin_teams above) and access to the org's sensitive
+#   credentials. Named by governance#94, recorded in governance's
+#   MAINTAINERS.md; a distinct body from the Steering Committee, so this
+#   list and steering_committee above are expected to diverge.
+#
+#   Same sync gap as steering_committee and subproject_committees: no
+#   script reconciles this list against the live team yet, so a change
+#   here needs a matching `gh api` call by hand until that's automated.
+#   Until that call is made, generated/teams.yaml's `admins` block still
+#   shows the previous membership.
+admins:
+  - fcanovai
+  - gbartolini
+  - jbattiato
+  - litaocdl
+  - mnencia
+  - NiccoloFei
