@@ -94,8 +94,9 @@ base_repository_permission: read
 #   a real roster in governance/MAINTAINERS.md, and all four are seeded
 #   with the same 5 people, the maintainers as they stood before the
 #   restructuring, since that is who held the authority being divided up.
-#   Expected to diverge as Component Owners are promoted into them, which
-#   is when this list stops being five identical blocks. Each committee has
+#   Supply Chain and Community, Docs & Ecosystem diverged on ratification
+#   (cloudnative-pg/governance#100, recorded in MAINTAINERS.md by
+#   governance#101); Core and Extensibility keep the seed. Each committee has
 #   a floor of 3 members; below that, Steering is caretaker for that
 #   subproject (see governance/GOVERNANCE.md).
 #
@@ -119,17 +120,22 @@ subproject_committees:
     - leonardoce
     - mnencia
   supply-chain-maintainers:
-    - armru
-    - fcanovai
+    - ardentperf
     - gbartolini
-    - leonardoce
+    - GabriFedi97
+    - itay-grudev
+    - jbattiato
+    - litaocdl
     - mnencia
+    - NiccoloFei
+    - phisco
   community-ecosystem-maintainers:
-    - armru
+    - ardentperf
     - fcanovai
-    - gbartolini
+    - FloorD
+    - itay-grudev
     - leonardoce
-    - mnencia
+    - TamaraNocentini
   extensibility-maintainers:
     - armru
     - fcanovai
