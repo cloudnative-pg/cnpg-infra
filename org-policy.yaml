@@ -109,9 +109,9 @@ base_repository_permission: read
 #
 #   Repo access: each of the 4 is granted `write` on the `governance` repo
 #   via repo-policy.yaml's extra_team_permissions, without which GitHub
-#   ignores the CODEOWNERS lines that reference them. The `Maintain` grant
-#   on each subproject's own repositories, which governance's
-#   subprojects/README.md describes as the target, is not in place yet.
+#   ignores the CODEOWNERS lines that reference them. On each subproject's
+#   own repositories each is granted the permission named by
+#   subproject_committee_permission above.
 subproject_committees:
   core-maintainers:
     - armru
