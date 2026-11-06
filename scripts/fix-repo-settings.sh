@@ -61,6 +61,12 @@
 #     is no per-team bypass, GitHub's own API for this setting is a plain
 #     per-repo on/off toggle with no bypass_actors-style exception.
 #   - Secret scanning + push protection: turned on if off.
+#   - Actions workflow permissions (OSPS-AC-04.01): the default GITHUB_TOKEN
+#     permission is forced to `read`, and "Allow GitHub Actions to create and
+#     approve pull requests" is forced off. Tightening only: a repo already at
+#     `read`/`false` is left alone. A workflow that needs more must declare it
+#     in its own `permissions:` block, so check a repo's workflows for jobs
+#     with no such block before applying.
 #   - Repo-level merge/branch settings, forced to true if not already:
 #     squash merging, rebase merging, "always suggest updating PR branches",
 #     delete head branches on merge. "Allow merge commit" is left untouched —
@@ -365,6 +371,12 @@ else
   new_immutable_releases=true
 fi
 
+# Actions workflow permissions (OSPS-AC-04.01). The endpoint is a plain PUT of
+# both fields; the floor is read-only token + Actions cannot approve PRs.
+wf_json="$(gh api "repos/$full/actions/permissions/workflow" 2>/dev/null)" || wf_json='{}'
+old_wf_default="$(echo "$wf_json" | jq -r '.default_workflow_permissions // "unknown"')"
+old_wf_approve="$(echo "$wf_json" | jq -r '.can_approve_pull_request_reviews | if . == null then "unknown" else tostring end')"
+
 category="$(policy_category "$repo")"
 
 # --- combine classic protection + effective ruleset rules into "old" values,
@@ -644,6 +656,8 @@ diff_line "secret scanning"                   "$secret_scanning"  "enabled"
 diff_line "secret scanning push protection"   "$push_protection"  "enabled"
 diff_line "dependabot security updates"       "$dependabot_sec"   "enabled"
 diff_line "dependabot vulnerability alerts"   "$vuln_enabled"     "true"
+diff_line "default workflow permissions"      "$old_wf_default"   "read"
+diff_line "Actions can approve PRs"           "$old_wf_approve"   "false"
 diff_line "release immutability"              "$old_immutable_releases" "$new_immutable_releases"
 diff_line "allow squash merging"              "$old_squash"       "true"
 diff_line "allow rebase merging"              "$old_rebase"       "true"
@@ -734,6 +748,17 @@ if [ "$new_immutable_releases" = "true" ] && [ "$old_immutable_releases" != "tru
     || echo "  ✗ failed to enable release immutability"
 fi
 
+if [ "$old_wf_default" != "read" ] || [ "$old_wf_approve" != "false" ]; then
+  if gh api -X PUT "repos/$full/actions/permissions/workflow" \
+      -f default_workflow_permissions=read \
+      -F can_approve_pull_request_reviews=false >/dev/null; then
+    echo "  ✓ workflow permissions set to read-only, Actions can no longer approve PRs"
+  else
+    echo "  ✗ failed to set workflow permissions"
+    grant_failures=$((grant_failures + 1))
+  fi
+fi
+
 if [ "$dependabot_sec" != "enabled" ]; then
   gh api -X PUT "repos/$full/automated-security-fixes" \
     && echo "  ✓ dependabot security updates enabled" \
@@ -796,7 +821,7 @@ done
 
 echo
 if [ "$grant_failures" -gt 0 ]; then
-  echo "Done with $grant_failures failed team grant(s) -- see the ✗ lines above." >&2
+  echo "Done with $grant_failures failed grant/setting(s) -- see the ✗ lines above." >&2
   echo "Re-run ./check-repo-settings.sh $repo to verify."
   exit 1
 fi
