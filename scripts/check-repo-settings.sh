@@ -301,6 +301,11 @@ for repo in "${REPOS[@]}"; do
   vuln_status="$(api_status_code "repos/$full/vulnerability-alerts")"
   vuln_enabled=$([ "$vuln_status" = "204" ] && echo true || echo false)
 
+  wf_json="$(api_json "repos/$full/actions/permissions/workflow")"
+  wf_default="$(echo "$wf_json" | jq -r '.default_workflow_permissions // "unknown"')"
+  wf_approve="$(echo "$wf_json" | jq -r '.can_approve_pull_request_reviews | if . == null then "unknown" else tostring end')"
+  wf_ok=$([ "$wf_default" = "read" ] && [ "$wf_approve" = "false" ] && echo true || echo false)
+
   cs_json="$(api_json "repos/$full/code-scanning/default-setup")"
   cs_state="$(echo "$cs_json" | jq -r '.state // "unknown"')"
 
@@ -567,6 +572,8 @@ for repo in "${REPOS[@]}"; do
     echo "- Secret scanning push protection: $(status_icon "$push_protection") \`$push_protection\`"
     echo "- Dependabot security updates: $(status_icon "$dependabot_sec") \`$dependabot_sec\`"
     echo "- Dependabot vulnerability alerts: $(icon "$vuln_enabled")"
+    echo "- Actions default workflow permissions: $(icon "$([ "$wf_default" = "read" ] && echo true || echo false)") \`$wf_default\`"
+    echo "- Actions can approve PRs: $(icon "$([ "$wf_approve" = "false" ] && echo true || echo false)") \`$wf_approve\`"
     echo "- Code scanning default setup: \`$cs_state\` (only detects the *default* CodeQL setup — a repo using a custom/advanced code-scanning workflow will show \`not-configured\` here even if SAST actually runs; verify manually before treating this as a hard fail)"
     echo
     echo "**Community health files (default branch)**"
@@ -590,6 +597,7 @@ for repo in "${REPOS[@]}"; do
     echo "| OSPS-QA-03.01 | Automated status checks required before merge | $(icon "$([ "$status_checks" != "(none)" ] && echo true || echo false)") |"
     echo "| OSPS-BR-07.01 | Secret scanning enabled | $(status_icon "$secret_scanning") |"
     echo "| OSPS-VM-05.03 | Automated dependency vuln. blocking (Dependabot) | $(icon "$vuln_enabled")$([ "$dependabot_sec" != "enabled" ] && echo " ⚠️ security updates not auto-applied")|"
+    echo "| OSPS-AC-04.01 | Default workflow permissions read-only, Actions cannot approve PRs | $(icon "$wf_ok") (\`$wf_default\`, approve=\`$wf_approve\`) |"
     echo "| OSPS-VM-06.02 | Automated SAST blocking | \`$cs_state\` (default-setup only, see note above) |"
     echo "| OSPS-LE-03.01 | LICENSE file present | $(icon "$has_license") |"
     echo "| OSPS-AC-02.01 | New-collaborator access is least-privilege | $([ "$outside_list" = "(none)" ] && echo "✅ no outside collaborators" || echo "⚠️ review: $outside_list") |"
@@ -647,8 +655,9 @@ done
   echo "  QA-02.02)."
   echo "- **CI/CD pipeline hardening**: untrusted-input sanitization, least-"
   echo "  privilege job permissions, standardized dependency tooling"
-  echo "  (BR-01.*, AC-04.*, BR-05.01) — needs reading the actual workflow YAML,"
-  echo "  not just repo settings."
+  echo "  (BR-01.*, AC-04.02, BR-05.01) — needs reading the actual workflow YAML,"
+  echo "  not just repo settings. AC-04.01 (default token permission) is checked"
+  echo "  above; per-job \`permissions:\` blocks are not."
   echo "- **Documentation quality**: user guides, build instructions, design docs,"
   echo "  external-interface docs, security assessment/threat model"
   echo "  (DO-01.01, DO-06.01, DO-07.01, SA-01.01, SA-02.01, SA-03.*)."
